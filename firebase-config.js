@@ -1,4 +1,8 @@
-// ضع هنا إعدادات مشروع Firebase الخاص بك (انظر ملف اقرأني.txt)
-// مثال:
-// window.FIREBASE_CONFIG = { apiKey:"...", authDomain:"xxx.firebaseapp.com", projectId:"xxx", appId:"..." };
-window.FIREBASE_CONFIG = null;
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD-K4eUUU_EBS-spJZ_YW7APylGoyu0PtQ",
+  authDomain: "teacher-e98ab.firebaseapp.com",
+  projectId: "teacher-e98ab",
+  storageBucket: "teacher-e98ab.firebasestorage.app",
+  messagingSenderId: "411538738068",
+  appId: "1:411538738068:web:886c88870b2cda09e05d81"
+};
