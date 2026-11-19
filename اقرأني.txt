@@ -1,0 +1,25 @@
+تفعيل الحساب بالبريد (مرة واحدة فقط) — مجاني
+============================================
+1) ادخل console.firebase.google.com بحساب Google → Add project → اسم أي شيء → أنشئ المشروع.
+2) Build → Authentication → Get started → Sign-in method → فعّل «Email/Password».
+3) Build → Firestore Database → Create database → اختر أي منطقة → Production mode.
+4) في Firestore → تبويب Rules → امسح كل شيء والصق التالي ثم Publish:
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
+
+5) Project settings (أيقونة الترس) → Your apps → أيقونة الويب </> → سجّل التطبيق → انسخ قيم firebaseConfig.
+6) افتح الملف firebase-config.js والصق القيم هكذا:
+
+window.FIREBASE_CONFIG = {
+  apiKey: "....", authDomain: "....firebaseapp.com", projectId: "....", appId: "...."
+};
+
+7) في Authentication → Settings → Authorized domains أضف نطاق موقعك (مثل اسمك.github.io).
+8) ارفع كل الملفات للاستضافة (مثلاً GitHub Pages) وافتح التطبيق ← المزيد ← أنشئ حساباً.
