@@ -172,6 +172,7 @@ function viewGrades(c){
     h+=`<select id="et" style="width:100%;margin-top:8px">${TERMS.map(t=>`<option ${t===db.gt?'selected':''}>${t}</option>`).join('')}</select>${(db.subjects||[]).length?`<select id="exs" style="width:100%;margin-top:6px">${db.subjects.map(x=>`<option>${esc(x.name)}</option>`).join('')}</select>`:''}<div class="row" style="margin-top:8px"><input id="en" placeholder="اسم الامتحان: شهري، يومي..."><input id="em" type="number" inputmode="decimal" placeholder="الدرجة" style="width:90px"></div><button class="p" style="margin-top:8px" onclick="addExam()">إضافة الامتحان</button>`;
     h+=full.exams.map(e=>`<div class="st" style="padding:6px 0;border-top:1px solid var(--bd);margin-top:6px"><span><b>${esc(e.name)}</b><br><span class="mu">${e.subject?esc(e.subject)+' · ':''}${e.term?e.term+' · ':''}من ${e.max} · المعدل ${avg(e,full)}${e.date?' · '+e.date:''}</span></span><button class="x ${armed===e.id?'arm':''}" onclick="delExam('${e.id}')">${armed===e.id?'تأكيد الحذف':'✕'}</button></div>`).join('');
   }
+  if(db.gt&&db.gt!=='all'){const tn=db.gt;h+=`<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px"><b>تحديد الدرجة (${esc(tn)})</b><p class="mu" style="margin:4px 0 8px">اكتب الدرجة التي تُحتسب منها امتحانات هذا الفصل (مثلاً 50). يُجمع كل امتحانات الطالب ويُقسَّم على مجموع درجات الامتحانات ثم يُضرب فيها، ويظهر في «مجموع ${esc(tn)}». اتركها فارغة لعرض المجموع كما هو.</p><div class="row"><input type="text" inputmode="decimal" placeholder="من كم؟ مثل 50" value="${exTgt(tn)||''}" onchange="setExMax('${esc(tn)}',this)"><span class="mu" style="white-space:nowrap">مجموع الامتحانات: ${fmt(c.exams.filter(e=>e.term===tn).reduce((a,e)=>a+(+e.max||0),0))}</span></div></div>`}
   h+='</div>';
   if(!full.exams.length)return h+'<div class="empty">أضف امتحاناً من زر «+ امتحان»، وبعدها يظهر تلقائياً عند كل طالب باسمه وخانة الدرجة.</div>';
   if(!E.length)return h+'<div class="empty">لا توجد امتحانات من هذا النوع.</div>';
@@ -720,8 +721,10 @@ function viewGD(t){
   return h;
 }
 const TT={d1:['الفصل الأول','مجموع الفصل الأول'],d2:['الفصل الثاني','مجموع الفصل الثاني']};
-function tCalc(c,t){const ex=c.exams.filter(e=>e.term===TT[t][0]),mx=ex.reduce((a,e)=>a+(+e.max||0),0);return {ex,mx,rows:dCalc(c,t).map(({s,e,a,tot})=>{const es=ex.reduce((x,q)=>x+(typeof q.scores[s.id]==='number'?q.scores[s.id]:0),0);return {s,a,es,d:tot,tot:up(es+tot)}})}}
-function tHead(c,t){const T=tCalc(c,t);return ['الطالب',...T.ex.map(e=>(e.subject?e.subject+' - ':'')+e.name+' (من '+e.max+')'),'مجموع الامتحانات (من '+fmt(T.mx)+')','اليومي (من '+fmt(sumW()+dsc().att)+')','المجموع (من '+fmt(T.mx+sumW()+dsc().att)+')']}
+const exTgt=tn=>+((db.exmx||{})[tn])||0;
+function setExMax(tn,el){const n=parseFloat(String(el.value).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g,'.'));db.exmx=db.exmx||{};if(isNaN(n)||n<=0)delete db.exmx[tn];else db.exmx[tn]=n;save();render()}
+function tCalc(c,t){const ex=c.exams.filter(e=>e.term===TT[t][0]),mx=ex.reduce((a,e)=>a+(+e.max||0),0),tg=exTgt(TT[t][0]),tgt=tg&&mx?tg:mx;return {ex,mx,tgt,rows:dCalc(c,t).map(({s,e,a,tot})=>{const raw=ex.reduce((x,q)=>x+(typeof q.scores[s.id]==='number'?q.scores[s.id]:0),0),es=tg&&mx?up(raw/mx*tg):raw;return {s,a,es,d:tot,tot:up(es+tot)}})}}
+function tHead(c,t){const T=tCalc(c,t);return ['الطالب',...T.ex.map(e=>(e.subject?e.subject+' - ':'')+e.name+' (من '+e.max+')'),'مجموع الامتحانات (من '+fmt(T.tgt)+')','اليومي (من '+fmt(sumW()+dsc().att)+')','المجموع (من '+fmt(T.tgt+sumW()+dsc().att)+')']}
 function tRows(c,t){const T=tCalc(c,t);return T.rows.map(r=>[r.s.name,...T.ex.map(e=>typeof e.scores[r.s.id]==='number'?fmt(e.scores[r.s.id]):''),fmt(r.es),fmt(r.d),fmt(r.tot)])}
 function exportT(t){const c=cls();csvOut(TT[t][1]+'-'+c.name,tHead(c,t),tRows(c,t))}
 function pdfT(t){const c=cls();pdfOut(TT[t][1]+trTxt(t)+' - '+clsLabel(c),tHead(c,t),tRows(c,t))}
