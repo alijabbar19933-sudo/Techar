@@ -699,9 +699,11 @@ function setTr(t,k,v){db.tr=db.tr||{};db.tr[t]=Object.assign({},db.tr[t]||{},{[k
 function clrTr(t){if(db.tr)delete db.tr[t];save();render()}
 const trOk=t=>{const r=trg(t);return dt=>(!r.f||dt>=r.f)&&(!r.t||dt<=r.t)};
 const trTxt=t=>{const r=trg(t);return r.f||r.t?' (من '+(r.f||'البداية')+' إلى '+(r.t||'اليوم')+')':''};
-function dCalc(c,t){const ok=trOk(t);return c.students.map(s=>{const e=evCalc(c,s.id,ok),a=attCalc(c,s.id,ok),tot=e.tot+a.pts;return {s,e,a,tot}})}
-function dHead(){const w=dsc();return ['الطالب','التحضير (من '+fmt(w.tahd)+')','الواجب (من '+fmt(w.dftr)+')','المشاركة (من '+fmt(w.mush)+')','خصم السلوك','التقييم (من '+fmt(sumW())+')','غياب','تأخر','الحضور (من '+fmt(w.att)+')','الدرجة اليومية (من '+fmt(sumW()+w.att)+')','مقرّبة']}
-function dRows(c,t){return dCalc(c,t).map(({s,e,a,tot})=>[s.name,fmt(e.p.tahd),fmt(e.p.dftr),fmt(e.p.mush),e.bd?'-'+fmt(e.bd):'0',fmt(e.tot),a.a,a.l,fmt(a.pts),fmt(tot),Math.round(tot)])}
+const dadj=(c,t,sid)=>(((c.dadj||{})[t]||{})[sid])||0;
+function setAdj(t,sid,el){const c=cls();if(!c)return;let v=el.value.trim().replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[−–—]/g,'-').replace(/[٫,،]/g,'.');const n=parseFloat(v);c.dadj=c.dadj||{};const m=c.dadj[t]=c.dadj[t]||{};if(v===''||isNaN(n)||n===0)delete m[sid];else m[sid]=n;save();render()}
+function dCalc(c,t){const ok=trOk(t);return c.students.map(s=>{const e=evCalc(c,s.id,ok),a=attCalc(c,s.id,ok),adj=dadj(c,t,s.id),tot=Math.max(0,e.tot+a.pts+adj);return {s,e,a,tot,adj}})}
+function dHead(){const w=dsc();return ['الطالب','التحضير (من '+fmt(w.tahd)+')','الواجب (من '+fmt(w.dftr)+')','المشاركة (من '+fmt(w.mush)+')','خصم السلوك','التقييم (من '+fmt(sumW())+')','غياب','تأخر','الحضور (من '+fmt(w.att)+')','تعديل (+/−)','الدرجة اليومية (من '+fmt(sumW()+w.att)+')','مقرّبة']}
+function dRows(c,t){return dCalc(c,t).map(({s,e,a,tot,adj})=>[s.name,fmt(e.p.tahd),fmt(e.p.dftr),fmt(e.p.mush),e.bd?'-'+fmt(e.bd):'0',fmt(e.tot),a.a,a.l,fmt(a.pts),adj?(adj>0?'+':'')+fmt(adj):'0',fmt(tot),Math.round(tot)])}
 function exportD(t){const c=cls();csvOut(TN[t]+'-'+c.name,dHead(),dRows(c,t))}
 function pdfD(t){const c=cls();pdfOut(TN[t]+trTxt(t)+' - '+clsLabel(c),dHead(),dRows(c,t))}
 function viewGD(t){
@@ -712,14 +714,14 @@ function viewGD(t){
   if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً من «المزيد ← الطلاب».</div>';
   const H=dHead();
   h+=`<div class="gwrap"><table class="gt" id="gtab"><tr>${H.map((x,i)=>`<th${i===0?' class="gsn"':''}>${esc(x)}</th>`).join('')}</tr>`;
-  h+=dCalc(c,t).map(({s,e,a,tot},n)=>`<tr data-n="${esc(s.name)}"${a.a>3?' class="red"':''}><td class="gsn">${n+1}. ${esc(s.name)}</td><td>${fmt(e.p.tahd)}</td><td>${fmt(e.p.dftr)}</td><td>${fmt(e.p.mush)}</td><td>${e.bd?'−'+fmt(e.bd):'0'}</td><td><b>${fmt(e.tot)}</b></td><td>${a.a}</td><td>${a.l}</td><td><b>${fmt(a.pts)}</b></td><td class="gtot">${fmt(tot)}</td><td class="gtot">${Math.round(tot)}</td></tr>`).join('');
-  h+=`</table></div><p class="mu" style="margin:8px 2px">التقييم: متوسط نجوم التحضير والواجب والمشاركة × درجة كل واحد، ثم يُخصم السلوك (${fmt(w.bd)} لكل نجمة). الحضور: ${fmt(w.att)} ويُخصم ${fmt(w.abs)} للغياب و${fmt(w.late)} للتأخر والمجاز لا يُخصم. المجموع جاهز لتجمعه مع درجة الامتحان الشهري.</p><div class="row"><button class="p" style="flex:1" onclick="exportD('${t}')">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfD('${t}')">مشاركة / طباعة PDF</button></div>`;
+  h+=dCalc(c,t).map(({s,e,a,tot,adj},n)=>`<tr data-n="${esc(s.name)}"${a.a>3?' class="red"':''}><td class="gsn">${n+1}. ${esc(s.name)}</td><td>${fmt(e.p.tahd)}</td><td>${fmt(e.p.dftr)}</td><td>${fmt(e.p.mush)}</td><td>${e.bd?'−'+fmt(e.bd):'0'}</td><td><b>${fmt(e.tot)}</b></td><td>${a.a}</td><td>${a.l}</td><td><b>${fmt(a.pts)}</b></td><td><input type="text" style="width:58px;border:1px solid var(--bd);border-radius:8px" placeholder="0" value="${adj?fmt(adj):''}" onchange="setAdj('${t}','${s.id}',this)"></td><td class="gtot">${fmt(tot)}</td><td class="gtot">${Math.round(tot)}</td></tr>`).join('');
+  h+=`</table></div><p class="mu" style="margin:8px 2px">التقييم: متوسط نجوم التحضير والواجب والمشاركة × درجة كل واحد، ثم يُخصم السلوك (${fmt(w.bd)} لكل نجمة). الحضور: ${fmt(w.att)} ويُخصم ${fmt(w.abs)} للغياب و${fmt(w.late)} للتأخر والمجاز لا يُخصم. عمود «تعديل» لإضافة درجات (مثل 1) أو حذفها (مثل -1) من الدرجة اليومية، واتركه فارغاً لإلغاء التعديل. المجموع جاهز لتجمعه مع درجة الامتحان الشهري.</p><div class="row"><button class="p" style="flex:1" onclick="exportD('${t}')">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfD('${t}')">مشاركة / طباعة PDF</button></div>`;
   return h;
 }
 const TT={d1:['الفصل الأول','مجموع الفصل الأول'],d2:['الفصل الثاني','مجموع الفصل الثاني']};
 function tCalc(c,t){const ex=c.exams.filter(e=>e.term===TT[t][0]),mx=ex.reduce((a,e)=>a+(+e.max||0),0);return {ex,mx,rows:dCalc(c,t).map(({s,e,a,tot})=>{const es=ex.reduce((x,q)=>x+(typeof q.scores[s.id]==='number'?q.scores[s.id]:0),0);return {s,a,es,d:tot,tot:es+tot}})}}
-function tHead(c,t){const T=tCalc(c,t);return ['الطالب',...T.ex.map(e=>(e.subject?e.subject+' - ':'')+e.name+' (من '+e.max+')'),'مجموع الامتحانات (من '+fmt(T.mx)+')','اليومي (من '+fmt(sumW()+dsc().att)+')','المجموع (من '+fmt(T.mx+sumW()+dsc().att)+')','مقرّب','غياب']}
-function tRows(c,t){const T=tCalc(c,t);return T.rows.map(r=>[r.s.name,...T.ex.map(e=>typeof e.scores[r.s.id]==='number'?fmt(e.scores[r.s.id]):''),fmt(r.es),fmt(r.d),fmt(r.tot),Math.round(r.tot),r.a.a])}
+function tHead(c,t){const T=tCalc(c,t);return ['الطالب',...T.ex.map(e=>(e.subject?e.subject+' - ':'')+e.name+' (من '+e.max+')'),'مجموع الامتحانات (من '+fmt(T.mx)+')','اليومي (من '+fmt(sumW()+dsc().att)+')','المجموع (من '+fmt(T.mx+sumW()+dsc().att)+')','مقرّب']}
+function tRows(c,t){const T=tCalc(c,t);return T.rows.map(r=>[r.s.name,...T.ex.map(e=>typeof e.scores[r.s.id]==='number'?fmt(e.scores[r.s.id]):''),fmt(r.es),fmt(r.d),fmt(r.tot),Math.round(r.tot)])}
 function exportT(t){const c=cls();csvOut(TT[t][1]+'-'+c.name,tHead(c,t),tRows(c,t))}
 function pdfT(t){const c=cls();pdfOut(TT[t][1]+trTxt(t)+' - '+clsLabel(c),tHead(c,t),tRows(c,t))}
 function viewGT(t){
@@ -731,8 +733,8 @@ function viewGT(t){
   if(!T.ex.length)h+=`<div class="empty" style="margin-bottom:10px">لا توجد امتحانات مسجّلة للـ${TT[t][0]}، والمجموع هنا هو اليومي فقط. أضف امتحاناً واختر الفصل.</div>`;
   const H=tHead(c,t);
   h+=`<div class="gwrap"><table class="gt" id="gtab"><tr>${H.map((x,i)=>`<th${i===0?' class="gsn"':''}>${esc(x)}</th>`).join('')}</tr>`;
-  h+=T.rows.map((q,n)=>`<tr data-n="${esc(q.s.name)}"${q.a.a>3?' class="red"':''}><td class="gsn">${n+1}. ${esc(q.s.name)}</td>${T.ex.map(e=>`<td>${typeof e.scores[q.s.id]==='number'?fmt(e.scores[q.s.id]):'-'}</td>`).join('')}<td><b>${fmt(q.es)}</b></td><td><b>${fmt(q.d)}</b></td><td class="gtot">${fmt(q.tot)}</td><td class="gtot">${Math.round(q.tot)}</td><td>${q.a.a}</td></tr>`).join('');
-  h+=`</table></div><p class="mu" style="margin:8px 2px">المجموع = درجات امتحانات ${TT[t][0]} + الدرجة اليومية. الطالب الذي غيابه أكثر من 3 أيام يظهر باللون الأحمر. الامتحان الذي لم تُسجَّل له درجة يُحسب صفراً.</p><div class="row"><button class="p" style="flex:1" onclick="exportT('${t}')">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfT('${t}')">مشاركة / طباعة PDF</button></div>`;
+  h+=T.rows.map((q,n)=>`<tr data-n="${esc(q.s.name)}"><td class="gsn">${n+1}. ${esc(q.s.name)}</td>${T.ex.map(e=>`<td>${typeof e.scores[q.s.id]==='number'?fmt(e.scores[q.s.id]):'-'}</td>`).join('')}<td><b>${fmt(q.es)}</b></td><td><b>${fmt(q.d)}</b></td><td class="gtot">${fmt(q.tot)}</td><td class="gtot">${Math.round(q.tot)}</td></tr>`).join('');
+  h+=`</table></div><p class="mu" style="margin:8px 2px">المجموع = درجات امتحانات ${TT[t][0]} + الدرجة اليومية. الامتحان الذي لم تُسجَّل له درجة يُحسب صفراً.</p><div class="row"><button class="p" style="flex:1" onclick="exportT('${t}')">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfT('${t}')">مشاركة / طباعة PDF</button></div>`;
   return h;
 }
 function mget(c,sid,k){const v=((gr(c).m||{})[sid]||{})[k];return v===undefined?'':v}
