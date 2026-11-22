@@ -93,6 +93,7 @@ button.bk{margin-bottom:10px}
 .gt input{width:54px;text-align:center;padding:7px 2px;border:0;background:transparent;font:inherit;color:var(--tx)}
 .gt input.dflt{color:var(--mu)}
 .gt .gtot{font-weight:700;color:var(--pr)}
+.wide tr.red td{color:#c0152f;font-weight:700;background:#fde8ea}
 .gt tr.red td{color:#c0152f;font-weight:700;background:#fde8ea}.gt tr.red td.gsn{background:#fde8ea}.gt tr.red .gtot{color:#c0152f}
 .gwrap{border:1px solid var(--bd);border-radius:12px;overflow-x:auto;max-height:68vh;background:var(--card)}
 .grow{display:grid;grid-template-columns:1fr 70px 70px auto;gap:6px;align-items:end;padding:10px 0;border-top:1px solid var(--bd)}
@@ -294,7 +295,7 @@ function viewMore(){
 }
 
 function classSel(){return db.classes.length?`<select onchange="setCls(this.value)" style="width:100%;margin-bottom:10px">${db.classes.map(x=>`<option value="${x.id}" ${x.id===db.cur?'selected':''}>${esc(clsLabel(x))}</option>`).join('')}</select>`:''}
-function tbl(head,rows){return `<div class="wide"><table><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</table></div>`}
+function tbl(head,rows,red){return `<div class="wide"><table><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${rows.map(r=>`<tr${red&&red(r)?' class="red"':''}>${r.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</table></div>`}
 function csvOut(name,head,rows){const q=v=>'"'+String(v).replace(/"/g,'""')+'"';dl(name+'-'+today()+'.csv','\uFEFF'+[head,...rows].map(r=>r.map(q).join(',')).join('\r\n'))}
 const ATT_HEAD=['الطالب','حاضر','غائب','متأخر','مجاز','نسبة الحضور'];
 function attRows(c){return c.students.map(s=>{const n={p:0,a:0,l:0,e:0};Object.keys(c.att).filter(inR).forEach(k=>{const d=c.att[k];if(d[s.id])n[d[s.id]]++});const t=n.p+n.a+n.l+n.e;return [s.name,n.p,n.a,n.l,n.e,t?Math.round((n.p+n.l)/t*100)+'%':'-']})}
@@ -387,7 +388,7 @@ function viewRAtt(){
     if(z.length)h+=`<div class="card"><b>بدون غياب (${z.length})</b><div class="mu" style="margin-top:6px;line-height:1.9">${z.map(x=>esc(x.s.name)).join('، ')}</div></div>`;
     return h+'<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="exportAbs()">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfAbs()">تصدير إلى PDF</button></div>';
   }
-  return h+`<div class="card"><b>تقرير الحضور والغياب</b>${msg?` <span class="ok">${msg}</span>`:''}${c.students.length?tbl(ATT_HEAD,attRows(c)):'<p class="mu">لا يوجد طلاب.</p>'}<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="exportAtt()">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfAtt()">تصدير إلى PDF</button></div></div>`;
+  return h+`<div class="card"><b>تقرير الحضور والغياب</b>${msg?` <span class="ok">${msg}</span>`:''}${c.students.length?tbl(ATT_HEAD,attRows(c),r=>r[2]>=4):'<p class="mu">لا يوجد طلاب.</p>'}<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="exportAtt()">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfAtt()">تصدير إلى PDF</button></div></div>`;
 }
 const examCols=c=>c.exams.filter(e=>!db.rt||db.rt==='all'||e.term===db.rt);
 const examHead=c=>['الطالب',...examCols(c).map(e=>(e.subject?e.subject+' ':'')+e.name+' ('+e.max+')'),'المعدل'];
@@ -716,7 +717,7 @@ function viewGD(t){
   if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً من «المزيد ← الطلاب».</div>';
   const H=dHead();
   h+=`<div class="gwrap"><table class="gt" id="gtab"><tr>${H.map((x,i)=>`<th${i===0?' class="gsn"':''}>${esc(x)}</th>`).join('')}</tr>`;
-  h+=dCalc(c,t).map(({s,e,a,tot,adj},n)=>`<tr data-n="${esc(s.name)}"${a.a>3?' class="red"':''}><td class="gsn">${n+1}. ${esc(s.name)}</td><td>${fmt(e.p.tahd)}</td><td>${fmt(e.p.dftr)}</td><td>${fmt(e.p.mush)}</td><td>${e.bd?'−'+fmt(e.bd):'0'}</td><td><b>${fmt(e.tot)}</b></td><td>${a.a}</td><td>${a.l}</td><td><b>${fmt(a.pts)}</b></td><td><input type="text" style="width:58px;border:1px solid var(--bd);border-radius:8px" placeholder="0" value="${adj?fmt(adj):''}" onchange="setAdj('${t}','${s.id}',this)"></td><td class="gtot">${fmt(tot)}</td></tr>`).join('');
+  h+=dCalc(c,t).map(({s,e,a,tot,adj},n)=>`<tr data-n="${esc(s.name)}"${a.a>=4?' class="red"':''}><td class="gsn">${n+1}. ${esc(s.name)}</td><td>${fmt(e.p.tahd)}</td><td>${fmt(e.p.dftr)}</td><td>${fmt(e.p.mush)}</td><td>${e.bd?'−'+fmt(e.bd):'0'}</td><td><b>${fmt(e.tot)}</b></td><td>${a.a}</td><td>${a.l}</td><td><b>${fmt(a.pts)}</b></td><td><input type="text" style="width:58px;border:1px solid var(--bd);border-radius:8px" placeholder="0" value="${adj?fmt(adj):''}" onchange="setAdj('${t}','${s.id}',this)"></td><td class="gtot">${fmt(tot)}</td></tr>`).join('');
   h+=`</table></div><p class="mu" style="margin:8px 2px">التقييم: متوسط نجوم التحضير والواجب والمشاركة × درجة كل واحد، ثم يُخصم السلوك (${fmt(w.bd)} لكل نجمة). الحضور: ${fmt(w.att)} ويُخصم ${fmt(w.abs)} للغياب و${fmt(w.late)} للتأخر والمجاز لا يُخصم. عمود «تعديل» لإضافة درجات (مثل 1) أو حذفها (مثل -1) من الدرجة اليومية، واتركه فارغاً لإلغاء التعديل. المجموع جاهز لتجمعه مع درجة الامتحان الشهري.</p><div class="row"><button class="p" style="flex:1" onclick="exportD('${t}')">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfD('${t}')">مشاركة / طباعة PDF</button></div>`;
   return h;
 }
