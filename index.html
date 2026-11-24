@@ -786,7 +786,7 @@ function viewSettings(){return accCard()+backupCard()+archiveCard()+pinCard()}
 function render(){
   if(locked){$('#app').innerHTML=lockView();return}
   const v=curView(),par=PARENT[v]||'more';
-  const VV={home:viewHome,exams:viewExams,more:viewMore,att:viewAttPage,exterm:()=>backBtn()+classPage('grd',false),
+  const VV={home:viewHome,exams:viewExams,more:viewMore,att:viewAttPage,exterm:()=>backBtn()+classPage('grd',true),
     schools:()=>backBtn()+listCard('schools','المدارس','اسم المدرسة'),subjects:()=>backBtn()+listCard('subjects','المواد','اسم المادة'),
     classes:()=>backBtn()+viewClasses(),students:()=>backBtn()+classPage('stu',true),sched:()=>backBtn()+viewSched(),eval:()=>backBtn()+classPage('evl',true),
     settings:()=>backBtn()+viewSettings(),gd1:()=>backBtn()+viewGD('d1'),gd2:()=>backBtn()+viewGD('d2'),gt1:()=>backBtn()+viewGT('d1'),gt2:()=>backBtn()+viewGT('d2'),gset:()=>backBtn()+viewGSet(),rexam:viewRExam,ratt:viewRAtt,reval:viewREval,rfin:viewRFin,rreg:viewRReg};
