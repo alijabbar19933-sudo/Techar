@@ -94,6 +94,11 @@ button.bk{margin-bottom:10px}
 .gt input.dflt{color:var(--mu)}
 .gt .gtot{font-weight:700;color:var(--pr)}
 .wide tr.red td{color:#c0152f;font-weight:700;background:#fde8ea}
+#vbar{position:fixed;top:64px;left:8px;z-index:60;display:none;align-items:center;gap:6px;max-width:calc(100vw - 16px)}
+#vbar button{width:46px;height:46px;border-radius:23px;border:0;background:var(--pr);color:var(--prt);font-size:20px;box-shadow:0 2px 10px rgba(0,0,0,.3);padding:0}
+#vbar #vl{width:38px;height:38px;border-radius:19px;font-size:13px;font-weight:700;background:var(--card);color:var(--tx);border:1px solid var(--bd)}
+#vbar button.on{background:#c0152f;color:#fff}
+#vt{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:6px 10px;font-size:13px;display:none;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .gt tr.red td{color:#c0152f;font-weight:700;background:#fde8ea}.gt tr.red td.gsn{background:#fde8ea}.gt tr.red .gtot{color:#c0152f}
 .gwrap{border:1px solid var(--bd);border-radius:12px;overflow-x:auto;max-height:68vh;background:var(--card)}
 .grow{display:grid;grid-template-columns:1fr 70px 70px auto;gap:6px;align-items:end;padding:10px 0;border-top:1px solid var(--bd)}
@@ -164,21 +169,25 @@ const gE=c=>(db.gt&&db.gt!=='all')?c.exams.filter(e=>e.term===db.gt):c.exams;
 function stAvgG(c,sid){const pc=gE(c).map(e=>typeof e.scores[sid]==='number'?e.scores[sid]/e.max*100:null).filter(x=>x!==null);return pc.length?Math.round(pc.reduce((a,b)=>a+b,0)/pc.length)+'%':'-'}
 let exEd={};
 function saveScore(eid,sid){const c=cls(),e=c.exams.find(x=>x.id===eid);if(!e)return;const inp=document.getElementById('sc_'+eid+'_'+sid);if(!inp)return;const v=inp.value.trim();if(v===''){delete e.scores[sid];delete exEd[eid+'|'+sid];save();render();return}const n=parseFloat(v);if(isNaN(n)||n<0||n>e.max){inp.style.borderColor='var(--a)';inp.focus();return}e.scores[sid]=n;delete exEd[eid+'|'+sid];save();render()}
+function delScore(eid,sid){const k='sc|'+eid+'|'+sid;if(armed!==k){armed=k;render();return}const e=cls().exams.find(x=>x.id===eid);if(e)delete e.scores[sid];delete exEd[eid+'|'+sid];armed=null;save();render()}
+function cancelScore(eid,sid){delete exEd[eid+'|'+sid];render()}
 function editScore(eid,sid){exEd[eid+'|'+sid]=1;render();const i=document.getElementById('sc_'+eid+'_'+sid);if(i)i.focus()}
+function bulkScores(){const c=cls(),e=c&&c.exams.find(x=>x.id===(document.getElementById('bkx')||{}).value),t=document.getElementById('bkt');if(!e||!t)return;const nz=x=>x.replace(/[ًٌٍَُِّْ]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\s+/g,' ').trim();let ok=0,bad=[];t.value.split(/\n/).forEach(line=>{line=line.replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g,'.').replace(/\t/g,' ').trim();if(!line)return;const m=line.match(/^(.*?)[\s:\-=]*(\d+(?:\.\d+)?)$/);if(!m||!m[1].trim()){bad.push(line);return}const nm=nz(m[1]),n=parseFloat(m[2]);let st=c.students.filter(s=>nz(s.name)===nm);if(!st.length)st=c.students.filter(s=>nz(s.name).includes(nm)||nm.includes(nz(s.name)));if(st.length!==1||n>e.max){bad.push(line);return}e.scores[st[0].id]=n;ok++});save();render();msg='تم تسجيل '+ok+' درجة'+(bad.length?' · لم يُطابَق '+bad.length+': '+bad.slice(0,3).join('، ')+(bad.length>3?'…':''):'');setTimeout(()=>{msg='';render()},6000);render()}
 function delExam(id){if(armed!==id){armed=id;render();return}const c=cls();c.exams=c.exams.filter(e=>e.id!==id);if(db.exam===id)db.exam=null;armed=null;save();render()}
 function viewGrades(c){
   const full=cls(),E=gE(c);
-  let h=`<div class="card"><div class="st"><b>الامتحانات (${full.exams.length})</b><button class="${showEx?'':'p'}" onclick="showEx=!showEx;armed=null;render()">${showEx?'إغلاق':'+ امتحان'}</button></div>`;
+  let h=`<div class="card"><div class="st"><b>الامتحانات (${full.exams.length})</b><button class="${showEx?'':'p'}" onclick="showEx=!showEx;armed=null;render()">${showEx?'إغلاق':'+ امتحان'}</button></div>${msg?`<p class="ok" style="margin:6px 0">${esc(msg)}</p>`:''}`;
   if(showEx){
-    h+=`<select id="et" style="width:100%;margin-top:8px">${TERMS.map(t=>`<option ${t===db.gt?'selected':''}>${t}</option>`).join('')}</select>${(db.subjects||[]).length?`<select id="exs" style="width:100%;margin-top:6px">${db.subjects.map(x=>`<option>${esc(x.name)}</option>`).join('')}</select>`:''}<div class="row" style="margin-top:8px"><input id="en" placeholder="اسم الامتحان: شهري، يومي..."><input id="em" type="number" inputmode="decimal" placeholder="الدرجة" style="width:90px"></div><button class="p" style="margin-top:8px" onclick="addExam()">إضافة الامتحان</button>`;
+    h+=`<select id="et" style="width:100%;margin-top:8px">${TERMS.map(t=>`<option ${t===db.gt?'selected':''}>${t}</option>`).join('')}</select>${(db.subjects||[]).length?`<select id="exs" style="width:100%;margin-top:6px">${db.subjects.map(x=>`<option>${esc(x.name)}</option>`).join('')}</select>`:''}<div class="row" style="margin-top:8px"><input id="en" placeholder="اسم الامتحان: شهري، يومي..."><input id="em" type="text" data-num="1" inputmode="decimal" placeholder="الدرجة" style="width:90px"></div><button class="p" style="margin-top:8px" onclick="addExam()">إضافة الامتحان</button>`;
     h+=full.exams.map(e=>`<div class="st" style="padding:6px 0;border-top:1px solid var(--bd);margin-top:6px"><span><b>${esc(e.name)}</b><br><span class="mu">${e.subject?esc(e.subject)+' · ':''}${e.term?e.term+' · ':''}من ${e.max} · المعدل ${avg(e,full)}${e.date?' · '+e.date:''}</span></span><button class="x ${armed===e.id?'arm':''}" onclick="delExam('${e.id}')">${armed===e.id?'تأكيد الحذف':'✕'}</button></div>`).join('');
   }
-  if(db.gt&&db.gt!=='all'){const tn=db.gt;h+=`<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px"><b>تحديد الدرجة (${esc(tn)})</b><p class="mu" style="margin:4px 0 8px">اكتب الدرجة التي تُحتسب منها امتحانات هذا الفصل (مثلاً 50). يُجمع كل امتحانات الطالب ويُقسَّم على مجموع درجات الامتحانات ثم يُضرب فيها، ويظهر في «مجموع ${esc(tn)}». اتركها فارغة لعرض المجموع كما هو.</p><div class="row">${(exTgt(tn)&&!tgEd[tn])?`<span style="flex:1"><b style="font-size:18px">${fmt(exTgt(tn))}</b> <button onclick="editExMax('${esc(tn)}')">تعديل</button></span>`:`<input type="text" id="tgin" inputmode="decimal" placeholder="من كم؟ مثل 50" value="${exTgt(tn)||''}" onkeydown="if(event.key==='Enter')saveExMax('${esc(tn)}')"><button class="p" onclick="saveExMax('${esc(tn)}')">حفظ</button>`}<span class="mu" style="white-space:nowrap">مجموع الامتحانات: ${fmt(c.exams.filter(e=>e.term===tn).reduce((a,e)=>a+(+e.max||0),0))}</span></div></div>`}
+  if(db.gt&&db.gt!=='all'){const tn=db.gt;h+=`<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px"><b>تحديد الدرجة (${esc(tn)})</b><p class="mu" style="margin:4px 0 8px">اكتب الدرجة التي تُحتسب منها امتحانات هذا الفصل (مثلاً 50). يُجمع كل امتحانات الطالب ويُقسَّم على مجموع درجات الامتحانات ثم يُضرب فيها، ويظهر في «مجموع ${esc(tn)}». اتركها فارغة لعرض المجموع كما هو.</p><div class="row">${(exTgt(tn)&&!tgEd[tn])?`<span style="flex:1"><b style="font-size:18px">${fmt(exTgt(tn))}</b> <button onclick="editExMax('${esc(tn)}')">تعديل</button> <button ${armed==='tg|'+tn?'style="background:#c0152f;color:#fff"':''} onclick="delExMax('${esc(tn)}')">${armed==='tg|'+tn?'تأكيد الحذف':'حذف'}</button></span>`:`<input type="text" id="tgin" inputmode="decimal" placeholder="من كم؟ مثل 50" value="${exTgt(tn)||''}" onkeydown="if(event.key==='Enter')saveExMax('${esc(tn)}')"><button class="p" onclick="saveExMax('${esc(tn)}')">حفظ</button>`}<span class="mu" style="white-space:nowrap">مجموع الامتحانات: ${fmt(c.exams.filter(e=>e.term===tn).reduce((a,e)=>a+(+e.max||0),0))}</span></div></div>`}
+  if(E.length)h+=`<details style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px"><summary><b>لصق درجات (اسم + درجة)</b></summary><p class="mu" style="margin:6px 0">اختر الامتحان والصق سطراً لكل طالب: الاسم ثم الدرجة، مثل «علي حسن 45». يمكن اللصق من Excel أو الكتابة بالصوت.</p><select id="bkx" style="width:100%">${E.map(e=>`<option value="${e.id}">${esc((e.subject?e.subject+' - ':'')+e.name)} (من ${e.max})</option>`).join('')}</select><textarea id="bkt" rows="6" style="width:100%;margin-top:6px" placeholder="أحمد محمد علي 85&#10;حسين كريم 92"></textarea>${impBox('bkt')}<button class="p" style="margin-top:6px" onclick="bulkScores()">تطبيق الدرجات</button></details>`;
   h+='</div>';
   if(!full.exams.length)return h+'<div class="empty">أضف امتحاناً من زر «+ امتحان»، وبعدها يظهر تلقائياً عند كل طالب باسمه وخانة الدرجة.</div>';
   if(!E.length)return h+'<div class="empty">لا توجد امتحانات من هذا النوع.</div>';
   if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً.</div>';
-  return h+c.students.map(s=>`<div class="card"><div class="st"><b>${esc(s.name)}</b><span class="mu">المعدل: <b id="av_${s.id}">${stAvgG(full,s.id)}</b></span></div>${E.map(e=>`<div class="st" style="padding:6px 0;border-top:1px solid var(--bd)"><span>${esc((e.subject?e.subject+' - ':'')+e.name)}<span class="mu"> (من ${e.max})</span></span>${(typeof e.scores[s.id]==='number'&&!exEd[e.id+'|'+s.id])?`<span><b style="font-size:16px">${fmt(e.scores[s.id])}</b> <button onclick="editScore('${e.id}','${s.id}')">تعديل</button></span>`:`<span><input class="sc" id="sc_${e.id}_${s.id}" type="number" inputmode="decimal" max="${e.max}" value="${e.scores[s.id]??''}" onkeydown="if(event.key==='Enter')saveScore('${e.id}','${s.id}')"> <button class="p" onclick="saveScore('${e.id}','${s.id}')">حفظ</button></span>`}</div>`).join('')}</div>`).join('');
+  return h+c.students.map(s=>`<div class="card"><div class="st"><b>${esc(s.name)}</b><span class="mu">المعدل: <b id="av_${s.id}">${stAvgG(full,s.id)}</b></span></div>${E.map(e=>`<div class="st" style="padding:6px 0;border-top:1px solid var(--bd)"><span>${esc((e.subject?e.subject+' - ':'')+e.name)}<span class="mu"> (من ${e.max})</span></span>${(typeof e.scores[s.id]==='number'&&!exEd[e.id+'|'+s.id])?`<span><b style="font-size:16px">${fmt(e.scores[s.id])}</b> <button onclick="editScore('${e.id}','${s.id}')">تعديل</button> <button ${armed==='sc|'+e.id+'|'+s.id?'style="background:#c0152f;color:#fff"':''} onclick="delScore('${e.id}','${s.id}')">${armed==='sc|'+e.id+'|'+s.id?'تأكيد الحذف':'حذف'}</button></span>`:`<span><input class="sc" id="sc_${e.id}_${s.id}" type="text" data-num="1" inputmode="decimal" max="${e.max}" data-qmax="${e.max}" data-save="saveScore('${e.id}','${s.id}')" value="${e.scores[s.id]??''}" onkeydown="if(event.key==='Enter')saveScore('${e.id}','${s.id}')"> <button class="p" onclick="saveScore('${e.id}','${s.id}')">حفظ</button>${typeof e.scores[s.id]==='number'?` <button onclick="cancelScore('${e.id}','${s.id}')">إلغاء</button>`:''}</span>`}</div>`).join('')}</div>`).join('');
 }
 function saveSt(id){const s=cls().students.find(x=>x.id===id);const n=$('#en2').value.trim();if(n)s.name=n;s.phone=$('#ph').value.trim();edit=null;save();render()}
 function viewStudents(c){
@@ -189,7 +198,7 @@ function viewStudents(c){
   return `<div class="card"><b>إضافة طلاب دفعة واحدة</b>
   <p class="mu">الصق الأسماء، اسم واحد في كل سطر (من Excel أو واتساب أو Word). إذا كان بجانب الاسم رقم هاتف في عمود ثانٍ يُحفظ كرقم ولي الأمر.</p>
   <textarea id="bulk" rows="6" placeholder="أحمد علي&#10;زينب حسن&#10;محمد كريم"></textarea>
-  <button class="p" onclick="bulk()">إضافة الكل</button>${msg?`<p class="ok">${msg}</p>`:''}</div>
+  ${impBox('bulk')}<button class="p" onclick="bulk()">إضافة الكل</button>${msg?`<p class="ok">${msg}</p>`:''}</div>
   <div class="card"><div class="st"><b>طلاب الصف (${c.students.length})</b>${c.students.length?`<span><button class="x ${armed==='ALL'?'arm':''}" onclick="delAll()">${armed==='ALL'?'تأكيد حذف الكل':'حذف الكل'}</button>${armed==='ALL'?'<button class="x" onclick="armed=null;render()">إلغاء</button>':''}</span>`:''}</div>${c.students.length?c.students.map(row).join(''):'<p class="mu">لم تضف أي طالب بعد.</p>'}</div>`;
 }
 
@@ -422,22 +431,28 @@ function doSearch(v){srch=v;const l=$('#lst'),c=cls();if(l&&c)l.innerHTML=tabBod
 const BACK={att:'home',exterm:'exams'};
 function backBtn(){return `<button class="bk" onclick="setView('${BACK[db.view]||'more'}')">→ رجوع</button>`}
 
-const EVC=[['tahd','التحضير'],['dftr','الواجب'],['mush','المشاركة اليومية'],['sulk','السلوك']];
+const EVC0=[['tahd','التحضير'],['dftr','الواجب'],['mp','المشاركة اليومية'],['sulk','السلوك']];
+const xfs=()=>db.xf||[];
+const evF=()=>EVC0.concat(xfs().map(f=>['x_'+f.id,f.name]));
+const isNum=k=>k==='mp'||k.slice(0,2)==='x_';
+const xMax=()=>xfs().reduce((a,f)=>a+(+f.max||0),0);
 const DS0={tahd:4,dftr:3,mush:3,bd:0.5,att:5,abs:2,late:2};
 const dsc=()=>Object.assign({},DS0,db.dsc||{});
 function setDs(k,el){const v=+el.value;if(el.value===''||!(v>=0))return;(db.dsc=db.dsc||{})[k]=v;save();render()}
 let dsOpen=false;
 const sg=k=>k==='sulk'?-1:1;
-const stp=(k,n)=>{const w=dsc();return k==='sulk'?-n*w.bd:n*w[k]/5};
+const stp=(k,n)=>{const w=dsc();return k==='sulk'?-n*w.bd:isNum(k)?n:n*w[k]/5};
 const sc=(k,n)=>{const v=stp(k,n),f=fmt(Math.abs(v));return '<span style="display:inline-flex;flex-direction:row;direction:ltr;gap:1px">'+(v<0?'<span>−</span>':'')+'<span>'+f+'</span></span>'};
-const sumW=()=>{const w=dsc();return w.tahd+w.dftr+w.mush};
+const sumW=()=>{const w=dsc();return w.tahd+w.dftr+w.mush+xMax()};
 function evCalc(c,sid,ok){
-  const w=dsc(),st={},cn={};let bd=0,days=0;
+  const w=dsc(),st={},cn={},xs={};let bd=0,days=0,mp=0;
   Object.entries(c.ev2||{}).forEach(([dt,day])=>{if(!ok(dt))return;const r=day[sid];if(!r)return;days++;
-    ['tahd','dftr','mush'].forEach(k=>{if(typeof r[k]==='number'){st[k]=(st[k]||0)+r[k];cn[k]=(cn[k]||0)+1}});
+    ['tahd','dftr'].forEach(k=>{if(typeof r[k]==='number'){st[k]=(st[k]||0)+r[k];cn[k]=(cn[k]||0)+1}});
+    if(typeof r.mp==='number')mp+=r.mp;
+    xfs().forEach(f=>{const v=r['x_'+f.id];if(typeof v==='number')xs[f.id]=(xs[f.id]||0)+v});
     if(typeof r.sulk==='number')bd+=r.sulk*w.bd});
-  const p={};['tahd','dftr','mush'].forEach(k=>{p[k]=cn[k]?st[k]/cn[k]/5*w[k]:0});
-  const tot=Math.max(0,Math.min(sumW(),p.tahd+p.dftr+p.mush-bd));
+  const p={};['tahd','dftr'].forEach(k=>{p[k]=cn[k]?st[k]/cn[k]/5*w[k]:0});p.mush=Math.min(w.mush,mp);p.x=xfs().reduce((a,f)=>a+Math.min(+f.max||0,xs[f.id]||0),0);
+  const tot=Math.max(0,Math.min(sumW(),p.tahd+p.dftr+p.mush+p.x-bd));
   return {p,bd,days,tot};
 }
 function attCalc(c,sid,ok){
@@ -446,11 +461,39 @@ function attCalc(c,sid,ok){
   return {a,l,pts:Math.max(0,w.att-a*w.abs-l*w.late)};
 }
 function evMode(m){db.evm=m;save();render()}
-function setEv(sid,k,v){const c=cls(),d=c.ev2=c.ev2||{},day=d[db.edate]=d[db.edate]||{},r=day[sid]=day[sid]||{};if(r[k]===v)delete r[k];else r[k]=v;if(!Object.keys(r).length)delete day[sid];if(!Object.keys(day).length)delete d[db.edate];save();render()}
+let evEd={},evDr={};
+const evK=(sid,k)=>db.edate+'|'+sid+'|'+k;
+function evClean(c,sid){const d=c.ev2||{},day=d[db.edate];if(!day)return;if(day[sid]&&!Object.keys(day[sid]).length)delete day[sid];if(!Object.keys(day).length)delete d[db.edate]}
+function evStar(sid,k,i){evDr[evK(sid,k)]=i;render()}
+function evEdit(sid,k,m){const key=evK(sid,k),r=((cls().ev2||{})[db.edate]||{})[sid]||{};evEd[key]=m||'edit';evDr[key]=r[k];render()}
+function evCancel(sid,k){const key=evK(sid,k);delete evEd[key];delete evDr[key];render()}
+function evSave(sid,k){
+  const key=evK(sid,k),c=cls(),old=(((c.ev2||{})[db.edate]||{})[sid]||{});let v;
+  if(isNum(k)){const el=document.getElementById('nv_'+k+'_'+sid),n=parseFloat(String(el?el.value:'').replace(/[٠-٩]/g,x=>'٠١٢٣٤٥٦٧٨٩'.indexOf(x)).replace(/[٫,،]/g,'.'));if(isNaN(n)||n<=0){if(el){el.style.borderColor='var(--a)';el.focus()}return}v=evEd[key]==='add'?(old[k]||0)+n:n}
+  else{v=evDr[key];if(!v)return}
+  const d=c.ev2=c.ev2||{},day=d[db.edate]=d[db.edate]||{},r=day[sid]=day[sid]||{};r[k]=v;delete evEd[key];delete evDr[key];save();render()}
+function evDel(sid,k){const key=evK(sid,k);if(armed!==key){armed=key;render();return}const c=cls(),r=((c.ev2||{})[db.edate]||{})[sid];if(r)delete r[k];evClean(c,sid);delete evEd[key];delete evDr[key];armed=null;save();render()}
+function evRow(s,k,l,r){
+  const key=evK(s.id,k),has=typeof r[k]==='number',ed=evEd[key],top='<div class="st" style="padding:6px 0;border-top:1px solid var(--bd);flex-wrap:wrap;gap:6px"><span style="min-width:96px">'+l+'</span>';
+  const bt=(a,t)=>`<button onclick="${a}">${t}</button>`;
+  const del=armed===key?`<button style="background:#c0152f;color:#fff" onclick="evDel('${s.id}','${k}')">تأكيد الحذف</button>`:bt(`evDel('${s.id}','${k}')`,'حذف');
+  if(isNum(k)){
+    if(has&&!ed)return top+`<span><b>${fmt(r[k])}</b> درجة</span><span class="row" style="gap:6px">${bt(`evEdit('${s.id}','${k}','edit')`,'تعديل')}${bt(`evEdit('${s.id}','${k}','add')`,'+ إضافة')}${del}</span></div>`;
+    return top+`<input id="nv_${k}_${s.id}" type="text" data-num="1" inputmode="decimal" data-qmax="${k==='mp'?dsc().mush:((xfs().find(f=>'x_'+f.id===k)||{}).max||10)}" data-save="evSave('${s.id}','${k}')" placeholder="${ed==='add'?'الدرجة المضافة':'الدرجة'}" value="${ed==='edit'?fmt(r[k]):''}" style="width:100px"><span class="row" style="gap:6px"><button class="p" onclick="evSave('${s.id}','${k}')">حفظ</button>${has?bt(`evCancel('${s.id}','${k}')`,'إلغاء'):''}</span></div>`;
+  }
+  const lock=has&&!ed,dv=lock?r[k]:(evDr[key]!==undefined?evDr[key]:0);
+  const stars=`<span class="stars sm${k==='sulk'?' neg':''}">${[1,2,3,4,5].map(i=>`<button class="${i<=dv?'on':''}" ${lock?'disabled':`onclick="evStar('${s.id}','${k}',${i})"`}>★</button>`).join('')}</span>`;
+  const val=`<span class="mu" style="min-width:58px;text-align:left">${dv?sc(k,dv)+' درجة':'-'}</span>`;
+  if(lock)return top+stars+val+`<span class="row" style="gap:6px">${bt(`evEdit('${s.id}','${k}')`,'تعديل')}${del}</span></div>`;
+  return top+stars+val+`<span class="row" style="gap:6px"><button class="p" onclick="evSave('${s.id}','${k}')">حفظ</button>${has?bt(`evCancel('${s.id}','${k}')`,'إلغاء'):''}</span></div>`;
+}
+function xfAdd(){const n=document.getElementById('xfn'),m=document.getElementById('xfm');if(!n||!m)return;const nm=n.value.trim(),mx=parseFloat(String(m.value).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g,'.'));if(!nm){n.focus();return}if(isNaN(mx)||mx<=0){m.style.borderColor='var(--a)';m.focus();return}(db.xf=db.xf||[]).push({id:uid(),name:nm,max:mx});dsOpen=true;save();render()}
+function xfDel(id){const k='xf|'+id;if(armed!==k){armed=k;render();return}db.xf=xfs().filter(f=>f.id!==id);armed=null;save();render()}
+function xfCard(){return `<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px"><b>حقول إضافية للتقييم</b><p class="mu" style="margin:4px 0 8px">أضف أي حقل درجة (مثل: الشفهي، النشاط) بدرجته العظمى. تُسجَّل درجته لكل طالب بحفظ وتعديل وحذف، وتُجمع إلى درجة التقييم.</p>${xfs().map(f=>`<div class="st" style="padding:4px 0"><span>${esc(f.name)} <span class="mu">(من ${fmt(f.max)})</span></span><button ${armed==='xf|'+f.id?'style="background:#c0152f;color:#fff"':''} onclick="xfDel('${f.id}')">${armed==='xf|'+f.id?'تأكيد الحذف':'حذف'}</button></div>`).join('')}<div class="row"><input id="xfn" placeholder="اسم الحقل"><input id="xfm" type="text" data-num="1" inputmode="decimal" placeholder="الدرجة" style="width:80px"><button class="p" onclick="xfAdd()">إضافة</button></div></div>`}
 function dsCard(){
-  const w=dsc(),f=(k,l)=>`<div><label class="mu" style="font-size:12px">${l}</label><input type="number" inputmode="decimal" step="0.25" min="0" value="${fmt(w[k])}" onchange="setDs('${k}',this)"></div>`;
-  return `<details class="card" ${dsOpen?'open':''} ontoggle="dsOpen=this.open"><summary><b>طريقة حساب الدرجة اليومية</b></summary><p class="mu" style="margin:6px 0">التقييم من ${fmt(sumW())} (تحضير + دفتر + مشاركة يومية)، ونجوم السلوك تُخصم منه. الحضور من ${fmt(w.att)} ويُخصم منه الغياب والتأخر.</p>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${f('tahd','درجة التحضير')}${f('dftr','درجة الواجب')}${f('mush','درجة المشاركة اليومية')}${f('bd','خصم نجمة السلوك')}${f('att','درجة الحضور')}${f('abs','خصم الغياب')}${f('late','خصم التأخر')}</div></details>`;
+  const w=dsc(),f=(k,l)=>`<div><label class="mu" style="font-size:12px">${l}</label><input type="text" data-num="1" inputmode="decimal" step="0.25" min="0" value="${fmt(w[k])}" onchange="setDs('${k}',this)"></div>`;
+  return `<details class="card" ${dsOpen?'open':''} ontoggle="dsOpen=this.open"><summary><b>طريقة حساب الدرجة اليومية</b></summary><p class="mu" style="margin:6px 0">التقييم من ${fmt(sumW())} (تحضير + دفتر + مشاركة يومية)، ونجوم السلوك تُخصم منه. المشاركة اليومية: الدرجات التي تضيفها كل يوم تُجمع إلى التقييم (بحد أقصى درجة المشاركة). الحضور من ${fmt(w.att)} ويُخصم منه الغياب والتأخر.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${f('tahd','درجة التحضير')}${f('dftr','درجة الواجب')}${f('mush','درجة المشاركة اليومية')}${f('bd','خصم نجمة السلوك')}${f('att','درجة الحضور')}${f('abs','خصم الغياب')}${f('late','خصم التأخر')}</div>${xfCard()}</details>`;
 }
 function viewEval(c){
   const m=db.evm||'day';
@@ -460,7 +503,7 @@ function viewEval(c){
   let h=tg+`<div class="row" style="margin-bottom:8px"><input type="date" value="${db.edate}" onchange="db.edate=this.value||today();save();render()"></div>`+dsCard();
   if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً من تبويب «الطلاب».</div>';
   return h+c.students.map(s=>{const r=d[s.id]||{},e=evCalc(full,s.id,inR);
-    return `<div class="card"><div class="st"><b>${esc(s.name)}</b>${e.days?`<span class="mu">درجة التقييم: <b style="color:var(--l)">${fmt(e.tot)}</b> من ${fmt(sumW())}</span>`:''}</div><div class="mu" style="font-size:13px">التاريخ: ${db.edate}</div>${EVC.map(([k,l])=>`<div class="st" style="padding:4px 0;border-top:1px solid var(--bd)"><span style="min-width:96px">${l}</span><span class="stars sm${k==='sulk'?' neg':''}">${[1,2,3,4,5].map(i=>`<button class="${i<=(r[k]||0)?'on':''}" onclick="setEv('${s.id}','${k}',${i})">★</button>`).join('')}</span><span class="mu" style="min-width:58px;text-align:left">${r[k]?sc(k,r[k])+' درجة':'-'}</span></div>`).join('')}${evHistBox(full,s.id)}</div>`}).join('');
+    return `<div class="card"><div class="st"><b>${esc(s.name)}</b>${e.days?`<span class="mu">درجة التقييم: <b style="color:var(--l)">${fmt(e.tot)}</b> من ${fmt(sumW())}</span>`:''}</div><div class="mu" style="font-size:13px">التاريخ: ${db.edate}</div>${evF().map(([k,l])=>evRow(s,k,l,r)).join('')}${evHistBox(full,s.id)}</div>`}).join('');
 }
 let evOpen=null;
 function toggleEvH(sid){evOpen=evOpen===sid?null:sid;render()}
@@ -471,12 +514,12 @@ function evHistBox(c,sid){
   let h=`<button class="x" style="margin-top:8px;width:100%" onclick="toggleEvH('${sid}')">${open?'▾':'▸'} سجل تقييمات الطالب (${L.length} يوم)</button>`;
   if(!open)return h;
   if(!L.length)return h+`<p class="mu">لا توجد تقييمات${perTxt()}.</p>`;
-  const rows=L.map(([dt,day])=>{const r=day[sid],sum=EVC.reduce((a,[k])=>a+(typeof r[k]==='number'?stp(k,r[k]):0),0);
-    return `<tr onclick="goEvDate('${dt}')" style="cursor:pointer"><td>${esc(fmtD(dt))}</td>${EVC.map(([k])=>`<td>${typeof r[k]==='number'?sc(k,r[k]):'-'}</td>`).join('')}<td><b>${fmt(sum)}</b></td></tr>`}).join('');
-  return h+`<div class="wide"><table><tr><th>التاريخ</th>${EVC.map(x=>`<th>${x[1]}</th>`).join('')}<th>مجموع اليوم</th></tr>${rows}</table></div><p class="mu" style="margin:6px 0 0">الأرقام بالدرجات${perTxt()}. اضغط على أي يوم لتعديله.</p>`;
+  const rows=L.map(([dt,day])=>{const r=day[sid],sum=evF().reduce((a,[k])=>a+(typeof r[k]==='number'?stp(k,r[k]):0),0);
+    return `<tr onclick="goEvDate('${dt}')" style="cursor:pointer"><td>${esc(fmtD(dt))}</td>${evF().map(([k])=>`<td>${typeof r[k]==='number'?sc(k,r[k]):'-'}</td>`).join('')}<td><b>${fmt(sum)}</b></td></tr>`}).join('');
+  return h+`<div class="wide"><table><tr><th>التاريخ</th>${evF().map(x=>`<th>${x[1]}</th>`).join('')}<th>مجموع اليوم</th></tr>${rows}</table></div><p class="mu" style="margin:6px 0 0">الأرقام بالدرجات${perTxt()}. اضغط على أي يوم لتعديله.</p>`;
 }
-function evHead(){const w=dsc();return ['الطالب','التحضير (من '+fmt(w.tahd)+')','الواجب (من '+fmt(w.dftr)+')','المشاركة اليومية (من '+fmt(w.mush)+')','خصم السلوك','درجة التقييم (من '+fmt(sumW())+')']}
-function evRows(c,ok){ok=ok||inR;return c.students.map(s=>{const e=evCalc(c,s.id,ok);return [s.name,fmt(e.p.tahd),fmt(e.p.dftr),fmt(e.p.mush),e.bd?'-'+fmt(e.bd):'0',fmt(e.tot)]})}
+function evHead(){const w=dsc();return ['الطالب','التحضير (من '+fmt(w.tahd)+')','الواجب (من '+fmt(w.dftr)+')','المشاركة اليومية (من '+fmt(w.mush)+')',...(xfs().length?['حقول إضافية (من '+fmt(xMax())+')']:[]),'خصم السلوك','درجة التقييم (من '+fmt(sumW())+')']}
+function evRows(c,ok){ok=ok||inR;return c.students.map(s=>{const e=evCalc(c,s.id,ok);return [s.name,fmt(e.p.tahd),fmt(e.p.dftr),fmt(e.p.mush),...(xfs().length?[fmt(e.p.x)]:[]),e.bd?'-'+fmt(e.bd):'0',fmt(e.tot)]})}
 function exportEv(){const c=cls();csvOut('evaluation-'+c.name,evHead(),evRows(c))}
 function pdfEv(){const c=cls();pdfOut('تقرير التقييم'+perTxt(),evHead(),evRows(c))}
 function viewREval(){
@@ -505,7 +548,7 @@ const FIN_HEAD=['الطالب','الترتيب','الامتحانات','التق
 function finRows(c){const w=(db.wx==null?70:db.wx)/100,o=c.students.map(s=>{const pc=c.exams.map(e=>typeof e.scores[s.id]==='number'?e.scores[s.id]/e.max*100:null).filter(x=>x!==null),ex=pc.length?pc.reduce((a,b)=>a+b,0)/pc.length:null,e0=evCalc(c,s.id,inR),evp=e0.days?e0.tot/sumW()*100:null;let f=null;if(ex!==null&&evp!==null)f=ex*w+evp*(1-w);else if(ex!==null)f=ex;else if(evp!==null)f=evp;return {s,ex,evp,f}}).sort((a,b)=>(b.f==null?-1:b.f)-(a.f==null?-1:a.f));o.forEach((r,i)=>r.rank=r.f===null?'-':i+1);return o}
 function finTable(c){return finRows(c).map(r=>[r.s.name,r.rank,pc1(r.ex),pc1(r.evp),pc1(r.f),r.f===null?'-':r.f>=50?'ناجح':'راسب'])}
 function viewRFin(){const c=cls();if(!c)return backBtn()+'<div class="empty">أضف صفًا أولاً.</div>';const R=finRows(c),v=R.filter(r=>r.f!==null),fl=v.filter(r=>r.f<50);
-return backBtn()+classSel()+`<div class="card"><b>المجموع النهائي</b><p class="mu">وزن الامتحانات <input type="number" value="${db.wx==null?70:db.wx}" min="0" max="100" style="width:70px" onchange="db.wx=Math.min(100,Math.max(0,+this.value||0));save();render()">% والباقي للتقييم. النجاح من 50.</p>${v.length?`<p class="mu">الأعلى: ${esc(v[0].s.name)} (${pc1(v[0].f)}) · الأقل: ${esc(v[v.length-1].s.name)} (${pc1(v[v.length-1].f)}) · الراسبون: ${fl.length}</p>`:'<p class="mu">لا توجد درجات أو تقييمات بعد.</p>'}${c.students.length?tbl(FIN_HEAD,finTable(c)):''}<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="csvOut('final-'+cls().name,FIN_HEAD,finTable(cls()))">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfOut('المجموع النهائي',FIN_HEAD,finTable(cls()))">تصدير إلى PDF</button></div></div>`}
+return backBtn()+classSel()+`<div class="card"><b>المجموع النهائي</b><p class="mu">وزن الامتحانات <input type="text" data-num="1" inputmode="decimal" value="${db.wx==null?70:db.wx}" min="0" max="100" style="width:70px" onchange="db.wx=Math.min(100,Math.max(0,+this.value||0));save();render()">% والباقي للتقييم. النجاح من 50.</p>${v.length?`<p class="mu">الأعلى: ${esc(v[0].s.name)} (${pc1(v[0].f)}) · الأقل: ${esc(v[v.length-1].s.name)} (${pc1(v[v.length-1].f)}) · الراسبون: ${fl.length}</p>`:'<p class="mu">لا توجد درجات أو تقييمات بعد.</p>'}${c.students.length?tbl(FIN_HEAD,finTable(c)):''}<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="csvOut('final-'+cls().name,FIN_HEAD,finTable(cls()))">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfOut('المجموع النهائي',FIN_HEAD,finTable(cls()))">تصدير إلى PDF</button></div></div>`}
 function regData(c){const m=db.rm||today().slice(0,7),n=new Date(+m.slice(0,4),+m.slice(5,7),0).getDate(),L={p:'ح',a:'غ',l:'م',e:'ج'},H=['الطالب',...Array.from({length:n},(_,i)=>String(i+1))];return {H,n,m,R:c.students.map(s=>[s.name,...Array.from({length:n},(_,i)=>{const v=(c.att[m+'-'+String(i+1).padStart(2,'0')]||{})[s.id];return v?L[v]:''})])}}
 function regOut(p){const c=cls(),g=regData(c);if(p)pdfOut('سجل الحضور - '+new Date(g.m+'-01T12:00:00').toLocaleDateString('ar-IQ',{month:'long',year:'numeric'}),g.H,g.R,{fs:17,pad:3,wts:[11,...Array(g.n).fill(1)]});else csvOut('register-'+g.m,g.H,g.R)}
 function viewRReg(){const c=cls();if(!c)return backBtn()+'<div class="empty">أضف صفًا أولاً.</div>';const g=regData(c);return backBtn()+classSel()+`<div class="card"><b>سجل الحضور الشهري</b><div class="row" style="margin-top:8px"><input type="month" value="${g.m}" onchange="db.rm=this.value||today().slice(0,7);save();render()"></div><p class="mu">ح حاضر · غ غائب · م متأخر · ج مجاز</p>${c.students.length?tbl(g.H,g.R):''}<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="regOut(0)">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="regOut(1)">تصدير إلى PDF</button></div></div>`}
@@ -706,10 +749,16 @@ let srchQ='';
 const expNm=c=>srchQ?' - '+srchQ:'';
 const expBox=()=>`<p id="exph" class="mu" style="margin:8px 2px">التصدير (Excel وPDF) يشمل كل الطلاب. اكتب اسم طالب في خانة البحث لتصدير بياناته فقط.</p>`;
 const dadj=(c,t,sid)=>(((c.dadj||{})[t]||{})[sid])||0;
-function setAdj(t,sid,el){const c=cls();if(!c)return;let v=el.value.trim().replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[−–—]/g,'-').replace(/[٫,،]/g,'.');const n=parseFloat(v);c.dadj=c.dadj||{};const m=c.dadj[t]=c.dadj[t]||{};if(v===''||isNaN(n)||n===0)delete m[sid];else m[sid]=n;save();render()}
+let adEd={};
+function adEdit(t,sid){adEd[t+'|'+sid]=1;render()}
+function adCancel(t,sid){delete adEd[t+'|'+sid];render()}
+function adSave(t,sid){const c=cls(),el=document.getElementById('ad_'+sid);if(!c||!el)return;const v=el.value.trim().replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[−–—]/g,'-').replace(/[٫,،]/g,'.'),n=parseFloat(v);if(v===''||isNaN(n)){el.style.borderColor='var(--a)';el.focus();return}c.dadj=c.dadj||{};const m=c.dadj[t]=c.dadj[t]||{};if(n===0)delete m[sid];else m[sid]=n;delete adEd[t+'|'+sid];save();render()}
+function adDel(t,sid){const k='ad|'+t+'|'+sid;if(armed!==k){armed=k;render();return}const c=cls();if(c.dadj&&c.dadj[t])delete c.dadj[t][sid];delete adEd[t+'|'+sid];armed=null;save();render()}
+function adAll(t,sg){const el=document.getElementById('allv'),c=cls();if(!el||!c)return;const n=parseFloat(String(el.value).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g,'.'));if(isNaN(n)||n<=0){el.style.borderColor='var(--a)';el.focus();return}c.dadj=c.dadj||{};const m=c.dadj[t]=c.dadj[t]||{};c.students.forEach(s=>{const v=Math.round(((m[s.id]||0)+sg*n)*1000)/1000;if(v===0)delete m[s.id];else m[s.id]=v});save();render()}
+function adClr(t){const k='adall|'+t;if(armed!==k){armed=k;render();return}const c=cls();if(c.dadj)delete c.dadj[t];adEd={};armed=null;save();render()}
 function dCalc(c,t){const ok=trOk(t);return c.students.map(s=>{const e=evCalc(c,s.id,ok),a=attCalc(c,s.id,ok),adj=dadj(c,t,s.id),tot=up(Math.max(0,e.tot+a.pts+adj));return {s,e,a,tot,adj}})}
-function dHead(){const w=dsc();return ['الطالب','التحضير (من '+fmt(w.tahd)+')','الواجب (من '+fmt(w.dftr)+')','المشاركة (من '+fmt(w.mush)+')','خصم السلوك','التقييم (من '+fmt(sumW())+')','غياب','تأخر','الحضور (من '+fmt(w.att)+')','تعديل (+/−)','الدرجة اليومية (من '+fmt(sumW()+w.att)+')']}
-function dRows(c,t){return dCalc(c,t).filter(r=>!srchQ||r.s.name.includes(srchQ)).map(({s,e,a,tot,adj})=>[s.name,fmt(e.p.tahd),fmt(e.p.dftr),fmt(e.p.mush),e.bd?'-'+fmt(e.bd):'0',fmt(e.tot),a.a,a.l,fmt(a.pts),adj?(adj>0?'+':'')+fmt(adj):'0',fmt(tot)])}
+function dHead(){const w=dsc();return ['الطالب','التحضير (من '+fmt(w.tahd)+')','الواجب (من '+fmt(w.dftr)+')','المشاركة (من '+fmt(w.mush)+')',...(xfs().length?['حقول إضافية (من '+fmt(xMax())+')']:[]),'خصم السلوك','التقييم (من '+fmt(sumW())+')','غياب','تأخر','الحضور (من '+fmt(w.att)+')','تعديل (+/−)','الدرجة اليومية (من '+fmt(sumW()+w.att)+')']}
+function dRows(c,t){return dCalc(c,t).filter(r=>!srchQ||r.s.name.includes(srchQ)).map(({s,e,a,tot,adj})=>[s.name,fmt(e.p.tahd),fmt(e.p.dftr),fmt(e.p.mush),...(xfs().length?[fmt(e.p.x)]:[]),e.bd?'-'+fmt(e.bd):'0',fmt(e.tot),a.a,a.l,fmt(a.pts),adj?(adj>0?'+':'')+fmt(adj):'0',fmt(tot)])}
 function exportD(t){const c=cls();csvOut(TN[t]+'-'+c.name+expNm(c),dHead(),dRows(c,t))}
 function pdfD(t){const c=cls();pdfOut(TN[t]+trTxt(t)+' - '+clsLabel(c)+expNm(c),dHead(),dRows(c,t))}
 function viewGD(t){
@@ -718,9 +767,10 @@ function viewGD(t){
   let h=classSel()+`<div class="card"><b>فترة ${TN[t]}</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="min-width:0"><label class="mu" style="font-size:12px">من تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.f||''}" onchange="setTr('${t}','f',this.value)"></div><div style="min-width:0"><label class="mu" style="font-size:12px">إلى تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.t||''}" onchange="setTr('${t}','t',this.value)"></div></div><div class="row" style="margin-top:8px"><button onclick="clrTr('${t}')">كل الفترة</button></div><p class="mu" style="margin:8px 0 0">تُحسب الدرجة من التقييم والحضور المسجّلين داخل هذه الفترة فقط.</p></div>`;
   h+=`<div class="row" style="margin-bottom:10px"><input type="search" placeholder="🔍 بحث عن طالب/ة" oninput="gfilter(this.value)"></div>`;
   if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً من «المزيد ← الطلاب».</div>';
+  h+=`<div class="card"><b>جمع / طرح درجة لجميع الطلاب</b><p class="mu" style="margin:4px 0 8px">اكتب رقماً (مثل 1 أو 0.5) ثم أضفه لدرجة كل الطلاب أو اخصمه منها. يُضاف إلى عمود «تعديل» ويمكنك تعديله لكل طالب بعدها.</p><div class="row"><input id="allv" type="text" data-num="1" inputmode="decimal" placeholder="الرقم" style="width:90px"><button class="p" onclick="adAll('${t}',1)">+ للجميع</button><button onclick="adAll('${t}',-1)">− من الجميع</button><button ${armed==='adall|'+t?'style="background:#c0152f;color:#fff"':''} onclick="adClr('${t}')">${armed==='adall|'+t?'تأكيد المسح':'مسح كل التعديلات'}</button></div></div>`;
   const H=dHead();
   h+=`<div class="gwrap"><table class="gt" id="gtab"><tr>${H.map((x,i)=>`<th${i===0?' class="gsn"':''}>${esc(x)}</th>`).join('')}</tr>`;
-  h+=dCalc(c,t).map(({s,e,a,tot,adj},n)=>`<tr data-n="${esc(s.name)}"${a.a>=4?' class="red"':''}><td class="gsn">${n+1}. ${esc(s.name)}</td><td>${fmt(e.p.tahd)}</td><td>${fmt(e.p.dftr)}</td><td>${fmt(e.p.mush)}</td><td>${e.bd?'−'+fmt(e.bd):'0'}</td><td><b>${fmt(e.tot)}</b></td><td>${a.a}</td><td>${a.l}</td><td><b>${fmt(a.pts)}</b></td><td><input type="text" style="width:58px;border:1px solid var(--bd);border-radius:8px" placeholder="0" value="${adj?fmt(adj):''}" onchange="setAdj('${t}','${s.id}',this)"></td><td class="gtot">${fmt(tot)}</td></tr>`).join('');
+  h+=dCalc(c,t).map(({s,e,a,tot,adj},n)=>`<tr data-n="${esc(s.name)}"${a.a>=4?' class="red"':''}><td class="gsn">${n+1}. ${esc(s.name)}</td><td>${fmt(e.p.tahd)}</td><td>${fmt(e.p.dftr)}</td><td>${fmt(e.p.mush)}</td>${xfs().length?`<td>${fmt(e.p.x)}</td>`:''}<td>${e.bd?'−'+fmt(e.bd):'0'}</td><td><b>${fmt(e.tot)}</b></td><td>${a.a}</td><td>${a.l}</td><td><b>${fmt(a.pts)}</b></td>${adj&&!adEd[t+'|'+s.id]?`<td><b>${adj>0?'+':''}${fmt(adj)}</b><br><button onclick="adEdit('${t}','${s.id}')">تعديل</button> <button ${armed==='ad|'+t+'|'+s.id?'style="background:#c0152f;color:#fff"':''} onclick="adDel('${t}','${s.id}')">${armed==='ad|'+t+'|'+s.id?'تأكيد':'حذف'}</button></td>`:`<td><input id="ad_${s.id}" type="text" data-num="1" style="width:62px;border:1px solid var(--bd);border-radius:8px" placeholder="0" value="${adj?fmt(adj):''}"><br><button class="p" onclick="adSave('${t}','${s.id}')">حفظ</button>${adj?` <button onclick="adCancel('${t}','${s.id}')">إلغاء</button>`:''}</td>`}<td class="gtot">${fmt(tot)}</td></tr>`).join('');
   h+=`</table></div><p class="mu" style="margin:8px 2px">التقييم: متوسط نجوم التحضير والواجب والمشاركة × درجة كل واحد، ثم يُخصم السلوك (${fmt(w.bd)} لكل نجمة). الحضور: ${fmt(w.att)} ويُخصم ${fmt(w.abs)} للغياب و${fmt(w.late)} للتأخر والمجاز لا يُخصم. عمود «تعديل» لإضافة درجات (مثل 1) أو حذفها (مثل -1) من الدرجة اليومية، واتركه فارغاً لإلغاء التعديل. المجموع جاهز لتجمعه مع درجة الامتحان الشهري.</p>${expBox()}<div class="row"><button class="p" style="flex:1" onclick="exportD('${t}')">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfD('${t}')">مشاركة / طباعة PDF</button></div>`;
   return h;
 }
@@ -728,6 +778,7 @@ const TT={d1:['الفصل الأول','مجموع الفصل الأول'],d2:['�
 const exTgt=tn=>+((db.exmx||{})[tn])||0;
 let tgEd={};
 function saveExMax(tn){const el=document.getElementById('tgin');if(!el)return;const n=parseFloat(String(el.value).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g,'.'));db.exmx=db.exmx||{};if(isNaN(n)||n<=0)delete db.exmx[tn];else db.exmx[tn]=n;delete tgEd[tn];save();render()}
+function delExMax(tn){const k='tg|'+tn;if(armed!==k){armed=k;render();return}if(db.exmx)delete db.exmx[tn];delete tgEd[tn];armed=null;save();render()}
 function editExMax(tn){tgEd[tn]=1;render();const i=document.getElementById('tgin');if(i)i.focus()}
 function tCalc(c,t){const ex=c.exams.filter(e=>e.term===TT[t][0]),mx=ex.reduce((a,e)=>a+(+e.max||0),0),tg=exTgt(TT[t][0]),tgt=tg&&mx?tg:mx;return {ex,mx,tgt,rows:dCalc(c,t).map(({s,e,a,tot})=>{const raw=ex.reduce((x,q)=>x+(typeof q.scores[s.id]==='number'?q.scores[s.id]:0),0),es=tg&&mx?up(raw/mx*tg):raw;return {s,a,es,d:tot,tot:up(es+tot)}})}}
 function tHead(c,t){const T=tCalc(c,t);return ['الطالب',...T.ex.map(e=>(e.subject?e.subject+' - ':'')+e.name+' (من '+e.max+')'),'مجموع الامتحانات (من '+fmt(T.tgt)+')','اليومي (من '+fmt(sumW()+dsc().att)+')','المجموع (من '+fmt(T.tgt+sumW()+dsc().att)+')']}
@@ -762,7 +813,7 @@ function viewGM(){
   let h=classSel()+`<div class="row" style="margin-bottom:10px"><input type="search" placeholder="🔍 بحث عن طالب/ة" oninput="gfilter(this.value)"></div>`;
   if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً من «المزيد ← الطلاب».</div>';
   h+=`<div class="gwrap"><table class="gt" id="gtab"><tr><th class="gsn">الطالب</th>${MCOLS.map(x=>`<th>${x[1]}<br>(من ${gmax()})</th>`).join('')}</tr>`;
-  h+=c.students.map((s,n)=>`<tr data-n="${esc(s.name)}"><td class="gsn">${n+1}. ${esc(s.name)}</td>${MCOLS.map(([k])=>`<td><input type="number" inputmode="decimal" step="0.25" min="0" max="${gmax()}" value="${mget(c,s.id,k)}" onchange="setM('${s.id}','${k}',this)"></td>`).join('')}</tr>`).join('');
+  h+=c.students.map((s,n)=>`<tr data-n="${esc(s.name)}"><td class="gsn">${n+1}. ${esc(s.name)}</td>${MCOLS.map(([k])=>`<td><input type="text" data-num="1" inputmode="decimal" step="0.25" min="0" max="${gmax()}" value="${mget(c,s.id,k)}" onchange="setM('${s.id}','${k}',this)"></td>`).join('')}</tr>`).join('');
   h+=`</table></div><p class="mu" style="margin:8px 2px">الدرجة العظمى لكل خانة ${gmax()}. غيّرها من «توزيع درجات اليومي».</p><div class="row"><button class="p" style="flex:1" onclick="exportM()">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfM()">مشاركة / طباعة PDF</button></div>`;
   return h;
 }
@@ -779,7 +830,7 @@ function delGrp(id){if(armed!==id){armed=id;render();return}db.dgroups=dgs().fil
 function viewGSet(){
   const G=dgs(),sum=G.reduce((a,g)=>a+g.total,0);
   return `<div class="card"><b>درجات الصف</b><p class="mu">للابتدائي من الأول إلى الرابع تكون درجات اليومي والشهري ونصف السنة والسعي السنوي والنهائي من 10، وباقي الصفوف من 100.</p><select onchange="setGmax(this.value)" style="width:100%"><option value="10" ${gmax()===10?'selected':''}>من 10</option><option value="100" ${gmax()===100?'selected':''}>من 100</option></select></div>`
-  +`<div class="card"><b>توزيع درجات اليومي</b><p class="mu">غيّر أسماء مجموعات اليومي وعدد خاناتها ودرجاتها.</p>${G.map(g=>`<div class="grow"><div><label>اسم المجموعة</label><input value="${esc(g.name)}" onchange="setGrp('${g.id}','name',this)"></div><div><label>عدد الخانات</label><input type="number" inputmode="numeric" min="1" max="20" value="${g.cells}" onchange="setGrp('${g.id}','cells',this)"></div><div><label>الدرجة الكلية</label><input type="number" inputmode="decimal" step="0.25" min="0" value="${fmt(g.total)}" onchange="setGrp('${g.id}','total',this)"></div><button class="x ${armed===g.id?'arm':''}" onclick="delGrp('${g.id}')">${armed===g.id?'تأكيد':'حذف'}</button></div>`).join('')}<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="addGrp()">+ إضافة مجموعة</button></div><p class="mu" style="margin-top:8px">مجموع درجات اليومي: <b>${fmt(sum)}</b>${sum!==gmax()?` (الدرجة العظمى للصف ${gmax()})`:''}</p></div>`;
+  +`<div class="card"><b>توزيع درجات اليومي</b><p class="mu">غيّر أسماء مجموعات اليومي وعدد خاناتها ودرجاتها.</p>${G.map(g=>`<div class="grow"><div><label>اسم المجموعة</label><input value="${esc(g.name)}" onchange="setGrp('${g.id}','name',this)"></div><div><label>عدد الخانات</label><input type="text" data-num="1" inputmode="numeric" min="1" max="20" value="${g.cells}" onchange="setGrp('${g.id}','cells',this)"></div><div><label>الدرجة الكلية</label><input type="text" data-num="1" inputmode="decimal" step="0.25" min="0" value="${fmt(g.total)}" onchange="setGrp('${g.id}','total',this)"></div><button class="x ${armed===g.id?'arm':''}" onclick="delGrp('${g.id}')">${armed===g.id?'تأكيد':'حذف'}</button></div>`).join('')}<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="addGrp()">+ إضافة مجموعة</button></div><p class="mu" style="margin-top:8px">مجموع درجات اليومي: <b>${fmt(sum)}</b>${sum!==gmax()?` (الدرجة العظمى للصف ${gmax()})`:''}</p></div>`;
 }
 
 function viewSettings(){return accCard()+backupCard()+archiveCard()+pinCard()}
@@ -797,7 +848,181 @@ function render(){
 }
 fbStart();
 if('serviceWorker' in navigator){const had=!!navigator.serviceWorker.controller;navigator.serviceWorker.register('sw.js').catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had)showUpd()})}
+function impBox(mode){return `<div class="row" style="margin:6px 0;gap:6px;flex-wrap:wrap"><button type="button" onclick="impPick('${mode}')">📷 من صورة أو كاميرا أو ملف</button><button type="button" onclick="impKey()">🤖 مفتاح الذكاء الاصطناعي</button></div><p id="impst" class="mu" style="margin:0 0 6px"></p>`}
 load();locked=!!db.pin;if(!db.date)db.date=today();if(!db.edate)db.edate=today();if(!cls()&&db.classes.length)db.cur=db.classes[0].id;render();
+/* ===== الإدخال الصوتي ===== */
+const VW={ar:{'صفر':0,'زيرو':0,'واحد':1,'واحدة':1,'وحدة':1,'اثنين':2,'اثنان':2,'اثنتين':2,'ثنين':2,'اثنتان':2,'ثلاثة':3,'ثلاث':3,'ثلاثه':3,'اربعة':4,'أربعة':4,'اربع':4,'أربع':4,'اربعه':4,'خمسة':5,'خمس':5,'خمسه':5,'ستة':6,'ست':6,'سته':6,'سبعة':7,'سبع':7,'سبعه':7,'ثمانية':8,'ثماني':8,'ثمان':8,'ثمانيه':8,'تمانية':8,'تسعة':9,'تسع':9,'تسعه':9,'عشرة':10,'عشر':10,'عشره':10,'احدعش':11,'أحدعش':11,'اثنعش':12,'اثناعش':12,'ثلطعش':13,'ثلاثطعش':13,'اربعطعش':14,'أربعطعش':14,'خمسطعش':15,'ستطعش':16,'سبعطعش':17,'ثمنطعش':18,'ثمانطعش':18,'تسعطعش':19,'عشرين':20,'عشرون':20,'ثلاثين':30,'ثلاثون':30,'اربعين':40,'أربعين':40,'اربعون':40,'خمسين':50,'خمسون':50,'ستين':60,'ستون':60,'سبعين':70,'سبعون':70,'ثمانين':80,'ثمانون':80,'تمانين':80,'تسعين':90,'تسعون':90,'مية':100,'ميه':100,'مئة':100,'مائة':100,'ميتين':200,'مئتين':200,'مائتين':200,'ثلاثمية':300,'ثلاثمئة':300,'ثلاثمائة':300,'اربعمية':400,'أربعمائة':400,'أربعمئة':400,'خمسمية':500,'خمسمائة':500,'خمسمئة':500},
+en:{zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,hundred:100}};
+Object.assign(VW.ar,{'اثنا':2,'اثني':2,'ثنتين':2,'ثلث':3,'تمانيه':8,'ثمنيه':8,'ثمن':8,'حداعش':11,'احداعش':11,'احدعش':11,'ثنعش':12,'ثنطعش':12,'اثنطعش':12,'ثلثطعش':13,'ثلتطعش':13,'ربعطعش':14,'خمستعش':15,'خمسطعش':15,'ستعش':16,'سطعش':16,'سبعتعش':17,'ثمنتعش':18,'ثمانتعش':18,'تسعتعش':19,'ثلثمية':300,'ثلثميه':300,'ثلاثميه':300,'اربعميه':400,'ربعمية':400,'ستمية':600,'ستميه':600,'ستمئة':600,'ستمائة':600,'سبعمية':700,'سبعميه':700,'سبعمئة':700,'سبعمائة':700,'ثمنمية':800,'ثمانمية':800,'ثمانمئة':800,'ثمانمائة':800,'تسعمية':900,'تسعمئة':900,'تسعمائة':900,'ميتان':200,'ميتين':200,'خمسميه':500,'عشرون':20,'عشرين':20,'ثلاثون':30,'اربعون':40,'أربعون':40,'خمسون':50,'ستون':60,'سبعون':70,'ثمانون':80,'تسعون':90});
+const vFix=t=>String(t).replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه');
+(function(){Object.keys(VW.ar).forEach(k=>{const f=vFix(k);if(!(f in VW.ar))VW.ar[f]=VW.ar[k]})})();
+function vNorm(s){return String(s).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/٫/g,'.').replace(/[−–—]/g,'-').trim()}
+function vWords(s){
+  s=vFix(vNorm(s)).toLowerCase().replace(/[،,.؟?!]/g,' ').replace(/-/g,' ');let tk=s.split(/\s+/).filter(Boolean),tot=0,part=0,prev=null,got=false;
+  for(let w of tk){
+    if(/^(ونص|ونصف|نص|نصف|half|وربع|ربع)$/.test(w)){part+=/ربع/.test(w)?0.25:0.5;got=true;prev=null;continue}
+    if(w==='and'||w==='و')continue;
+    let k=w;if(!(k in VW.ar)&&!(k in VW.en)&&k[0]==='و'&&k.length>2)k=k.slice(1);
+    let v=k in VW.ar?VW.ar[k]:k in VW.en?VW.en[k]:undefined;
+    if(v===undefined)continue;got=true;
+    if((k==='عشر'||k==='عشرة')&&prev!==null&&prev>=1&&prev<=9&&w[0]!=='و'){part+=10;prev=null;continue}
+    if(v===100&&(k in VW.en)){part=(part||1)*100;prev=null;continue}
+    if(v===100&&prev!==null&&prev>=1&&prev<=9){part+=v*prev-prev;prev=null;continue}
+    part+=v;prev=(v>=1&&v<=9)?v:null;
+  }
+  return got?tot+part:null;
+}
+function toNum(t){
+  let s=vNorm(t),neg=/(^|\s)(سالب|ناقص|minus|negative)(\s|$)/i.test(s)||/^-\s*\d/.test(s);
+  let m=s.match(/-?\d+(?:[.,]\d+)?/);if(m){let n=parseFloat(m[0].replace(',','.'));return neg&&n>0?-n:n}
+  const dm=s.match(/^(.*?)(?:\s|^)(نقطة|فاصلة|فاصل|point|dot)\s+(.+)$/i);
+  if(dm){const a=vWords(dm[1]),r=dm[3].split(/\s+/).map(x=>{const v=vWords(x);return v===null?'':String(v)}).join('');if(a!==null&&r){const n=parseFloat(a+'.'+r);return neg?-n:n}}
+  const n=vWords(s);return n===null?null:(neg?-n:n);
+}
+(function(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  let lang='iq';try{lang=localStorage.getItem('vl')||'iq';if(lang==='ar')lang='iq'}catch(e){}
+  const LB={iq:'عراقي',fu:'فصحى',en:'EN'},LS=l=>l==='en'?'EN':l==='fu'?'ف':'ع';
+  let cur=null,rec=null,busy=false,hid=null,tried=0;
+  const BAD=['checkbox','radio','date','file','button','submit','range','color','password','time','month','week','datetime-local','hidden'];
+  const ok=el=>el&&(el.tagName==='TEXTAREA'||(el.tagName==='INPUT'&&!BAD.includes(el.type)));
+  const isNum=el=>el.type==='number'||el.type==='tel'||el.dataset.num==='1'||/numeric|decimal/.test(el.inputMode||'')||el.classList.contains('sc');
+  function init(){
+    const bar=document.createElement('div');bar.id='vbar';
+    bar.innerHTML='<button id="vm" type="button" aria-label="إملاء صوتي">🎤</button><button id="vl" type="button" aria-label="لغة الإملاء">'+LS(lang)+'</button><span id="vt"></span>';
+    document.body.appendChild(bar);
+    const say=(t,ms)=>{const e=document.getElementById('vt');e.textContent=t;e.style.display=t?'':'none';if(ms)setTimeout(()=>{if(e.textContent===t){e.textContent='';e.style.display='none'}},ms)};
+    const show=()=>{clearTimeout(hid);bar.style.display='flex'};
+    const hide=()=>{clearTimeout(hid);hid=setTimeout(()=>{if(!busy)bar.style.display='none'},1800)};
+    document.addEventListener('focusin',e=>{if(ok(e.target)){cur=e.target;show()}});
+    document.addEventListener('focusout',e=>{if(ok(e.target))hide()});
+    document.getElementById('vl').onclick=()=>{lang=lang==='iq'?'fu':lang==='fu'?'en':'iq';try{localStorage.setItem('vl',lang)}catch(e){}document.getElementById('vl').textContent=LS(lang);say(lang==='en'?'English':lang==='fu'?'العربية الفصحى':'اللهجة العراقية',1500)};
+    function apply(t){
+      const el=cur;if(!el||!document.contains(el)){say('اضغط على الحقل أولاً',2500);return}
+      let v;
+      if(isNum(el)){const n=toNum(t);if(n===null){say('لم أفهم الرقم: «'+t+'»',3500);return}v=String(n)}
+      else v=(window.voiceLine?voiceLine(el,t):t.trim());
+      if(el.tagName==='TEXTAREA'&&el.value.trim())el.value=el.value.replace(/\s+$/,'')+(el.id==='bulk'||el.id==='bkt'?'\n':' ')+v;else el.value=v;
+      el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));
+      say('✓ '+v,1800);
+    }
+    function start(){
+      if(!SR){say('الإملاء الصوتي غير مدعوم هنا. استخدم زر الميكروفون في لوحة مفاتيح الآيفون.',6000);return}
+      if(!cur||!document.contains(cur)){say('اضغط على الحقل أولاً',2500);return}
+      if(busy&&rec){try{rec.stop()}catch(e){}return}
+      const L=lang==='en'?['en-US']:lang==='fu'?['ar-SA','ar-EG','ar-IQ']:['ar-IQ','ar-SA'];tried=0;run(L);
+    }
+    function run(L){
+      rec=new SR();rec.lang=L[tried];rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=1;
+      let got=false;
+      rec.onstart=()=>{busy=true;document.getElementById('vm').classList.add('on');say('🎙 أستمع...')};
+      rec.onresult=e=>{got=true;apply(e.results[0][0].transcript)};
+      rec.onerror=e=>{
+        if(e.error==='language-not-supported'&&tried+1<L.length){tried++;setTimeout(()=>run(L),50);return}
+        if(e.error==='no-speech')say('لم أسمع شيئاً، حاول مرة أخرى',2500);
+        else if(e.error==='not-allowed'||e.error==='service-not-allowed')say('الميكروفون غير مسموح هنا. فعّله من إعدادات Safari، أو استخدم ميكروفون لوحة المفاتيح.',7000);
+        else if(e.error!=='aborted')say('تعذّر الإملاء ('+e.error+'). جرّب ميكروفون لوحة المفاتيح.',5000)};
+      rec.onend=()=>{busy=false;document.getElementById('vm').classList.remove('on');if(!got&&document.getElementById('vt').textContent==='🎙 أستمع...')say('')};
+      try{rec.start()}catch(e){busy=false;say('تعذّر بدء الميكروفون',3000)}
+    }
+    document.getElementById('vm').onclick=start;
+  }
+  document.body?init():addEventListener('DOMContentLoaded',init);
+})();
+
+
+/* ===== توحيد الأرقام: ٢ و 2 كلاهما مقبول ===== */
+(function(){
+  const f=el=>el&&el.tagName==='INPUT'&&(el.dataset.num==='1'||el.type==='tel'||/numeric|decimal/.test(el.inputMode||''));
+  const nz=s=>s.replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/٫/g,'.').replace(/٬/g,',').replace(/[−–—]/g,'-');
+  function fix(e){const el=e.target;if(!f(el))return;const v=el.value,w=nz(v);if(v!==w){const p=el.selectionStart;el.value=w;try{el.setSelectionRange(p,p)}catch(_){}}}
+  document.addEventListener('input',fix,true);document.addEventListener('change',fix,true);
+})();
+
+/* ===== أزرار الدرجة السريعة + استيراد من صورة/ملف + إملاء الاسم والدرجة ===== */
+(function(){
+  const AR='٠١٢٣٤٥٦٧٨٩';
+  let pad=null,cur=null,ht=null;
+  const isQ=el=>el&&el.tagName==='INPUT'&&el.dataset&&el.dataset.qmax;
+  function steps(m){m=+m||10;if(m<=10)return Array.from({length:m+1},(_,i)=>i);const st=m<=20?2:m<=50?5:10,a=[];for(let i=0;i<=m;i+=st)a.push(i);if(a[a.length-1]!==m)a.push(m);return a}
+  function build(el){
+    pad.innerHTML='';
+    const mk=(t,f,cl)=>{const b=document.createElement('button');b.type='button';b.textContent=t;if(cl)b.className=cl;b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('touchstart',e=>{e.preventDefault();f()},{passive:false});b.addEventListener('click',f);pad.appendChild(b)};
+    const set=v=>{if(!cur)return;cur.value=v;cur.dispatchEvent(new Event('input',{bubbles:true}))};
+    steps(el.dataset.qmax).forEach(n=>mk(n,()=>set(String(n))));
+    mk('+0.5',()=>{const v=parseFloat(cur.value)||0;set(String(Math.round((v+0.5)*100)/100))},'o');
+    mk('.',()=>{if(cur.value.indexOf('.')<0)set((cur.value||'0')+'.')},'o');
+    mk('⌫',()=>set(cur.value.slice(0,-1)),'d');
+    mk('مسح',()=>set(''),'d');
+    if(el.dataset.save)mk('حفظ ✓',()=>{try{new Function(el.dataset.save)()}catch(e){}},'s');
+  }
+  function place(){if(!pad||pad.style.display==='none')return;const v=window.visualViewport;pad.style.bottom=v?Math.max(0,window.innerHeight-v.height-v.offsetTop)+'px':'0'}
+  function init(){
+    pad=document.createElement('div');pad.id='qpad';pad.style.display='none';document.body.appendChild(pad);
+    const st=document.createElement('style');st.textContent='#qpad{position:fixed;left:0;right:0;bottom:0;z-index:70;display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--card);border-top:1px solid var(--bd);box-shadow:0 -4px 14px rgba(0,0,0,.18);direction:ltr}#qpad button{flex:0 0 auto;min-width:46px;height:42px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:17px;font-weight:700;padding:0 10px}#qpad .o{background:#fff7d6;color:#7a5a00}#qpad .d{background:#fde8ea;color:#a30f27}#qpad .s{background:var(--pr);color:var(--prt);border:0;margin-inline-start:auto}';document.head.appendChild(st);
+    document.addEventListener('focusin',e=>{if(isQ(e.target)){clearTimeout(ht);cur=e.target;build(cur);pad.style.display='flex';place()}});
+    document.addEventListener('focusout',e=>{if(isQ(e.target)){ht=setTimeout(()=>{if(!isQ(document.activeElement)){pad.style.display='none'}},250)}});
+    if(window.visualViewport){visualViewport.addEventListener('resize',place);visualViewport.addEventListener('scroll',place)}
+  }
+  document.body?init():addEventListener('DOMContentLoaded',init);
+
+  /* ---- استيراد ---- */
+  const lsg=k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}},lss=(k,v)=>{try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}};
+  const ims=t=>{const e=document.getElementById('impst');if(e)e.textContent=t||''};
+  const load=(u)=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=()=>no(new Error('تعذّر التحميل، تأكد من الإنترنت'));document.head.appendChild(s)});
+  function toJpeg(file,max){return new Promise((ok,no)=>{const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{let w=im.width,h=im.height;const k=Math.min(1,max/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',0.85))};im.onerror=()=>no(new Error('تعذّر قراءة الصورة'));im.src=u})}
+  async function aiRead(file,mode){
+    const key=lsg('aikey'),d=await toJpeg(file,1800);
+    const pr=mode==='bkt'?'هذه صورة كشف درجات. استخرج لكل طالب سطراً واحداً بصيغة: الاسم ثم مسافة ثم الدرجة (رقم إنجليزي). لا تكتب أي شرح ولا ترقيماً ولا عناوين، فقط السطور. تجاهل الصفوف التي لا تحتوي درجة.':'هذه صورة قائمة طلاب. استخرج أسماء الطلاب فقط، اسماً كاملاً في كل سطر، بدون أرقام تسلسل ولا عناوين ولا شرح. إن كان بجانب الاسم رقم هاتف فاتركه بعد الاسم بمسافة.';
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:3000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:d.split(',')[1]}},{type:'text',text:pr}]}]})});
+    const j=await r.json();if(!r.ok)throw new Error((j.error&&j.error.message)||('خطأ '+r.status));
+    return (j.content||[]).map(x=>x.text||'').join('\n');
+  }
+  async function ocrRead(file,mode){
+    ims('جارٍ تحميل قارئ النصوص (أول مرة فقط)...');
+    if(!window.Tesseract)await load('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+    const d=await toJpeg(file,2200);
+    const w=await Tesseract.createWorker('ara+eng',1,{logger:m=>{if(m.status==='recognizing text')ims('جارٍ قراءة الصورة '+Math.round((m.progress||0)*100)+'%')}});
+    const r=await w.recognize(d);await w.terminate();
+    return r.data.text;
+  }
+  function clean(t,mode){
+    const lines=String(t).replace(/\r/g,'').split('\n').map(l=>l.replace(/[\t|;,،]+/g,' ').replace(/[٠-٩]/g,x=>AR.indexOf(x)).replace(/\s+/g,' ').trim()).filter(Boolean);
+    return lines.map(l=>{if(mode==='bkt'){const m=l.match(/^(?:\d+\s*[.\-)]\s*)?(.*?)\s+(\d+(?:\.\d+)?)$/);return m&&m[1]&&/[^\d\s.]/.test(m[1])?m[1].trim()+' '+m[2]:null}
+      l=l.replace(/^\d+\s*[.\-)]\s*/,'').replace(/^\d+\s+(?=\D)/,'');if(/^(الاسم|اسم الطالب|اسماء الطلاب|أسماء الطلاب|الطالب|ت|الدرجة|المجموع|name)$/i.test(l))return null;return /[^\d\s.]/.test(l)?l:null}).filter(Boolean).join('\n');
+  }
+  window.impPick=function(mode){
+    const inp=document.createElement('input');inp.type='file';inp.accept='image/*,.csv,.txt,.tsv,.xlsx,.xls,text/plain';
+    inp.onchange=async()=>{
+      const f=inp.files&&inp.files[0];if(!f)return;const ta=document.getElementById(mode);if(!ta)return;
+      try{
+        let txt='';const nm=(f.name||'').toLowerCase();
+        if(f.type.startsWith('image/')||/\.(jpe?g|png|heic|webp)$/.test(nm)){
+          if(lsg('aikey')){ims('جارٍ القراءة بالذكاء الاصطناعي...');txt=await aiRead(f,mode)}
+          else txt=await ocrRead(f,mode);
+        }else if(/\.xlsx?$/.test(nm)){
+          ims('جارٍ قراءة الملف...');if(!window.XLSX)await load('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+          const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});txt=XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]]);
+        }else txt=await f.text();
+        const out=clean(txt,mode);
+        if(!out){ims('لم أجد أسماء واضحة في الملف. جرّب صورة أوضح.');return}
+        ta.value=(ta.value.trim()?ta.value.replace(/\s+$/,'')+'\n':'')+out;
+        ims('تمت القراءة ('+out.split('\n').length+' سطر). راجع النتيجة وصحّح الأخطاء ثم اضغط زر الإضافة.');
+      }catch(e){ims('تعذّرت القراءة: '+(e.message||e))}
+    };
+    inp.click();
+  };
+  window.impKey=function(){const k=prompt('الصق مفتاح Claude API (يبدأ بـ sk-ant). يُحفظ على جهازك فقط. اتركه فارغاً لإلغاء الذكاء الاصطناعي واستخدام القراءة المجانية.',lsg('aikey'));if(k===null)return;lss('aikey',k.trim());ims(k.trim()?'تم حفظ المفتاح، ستُقرأ الصور بالذكاء الاصطناعي.':'تم حذف المفتاح، ستُقرأ الصور بالقارئ المجاني.')};
+
+  /* ---- إملاء: اسم ثم درجة في سطر ---- */
+  window.voiceLine=function(el,t){
+    if(el.id!=='bkt')return t.trim();
+    const w=t.trim().split(/\s+/);let k=0;
+    while(k<w.length-1){const x=w[w.length-1-k];if(/^[\d٠-٩.]+$/.test(x)||x==='و'||vWords(x)!==null)k++;else break}
+    if(k){const tail=w.slice(-k).join(' '),n=toNum(tail);if(n!==null&&n>=0)return w.slice(0,-k).join(' ')+' '+n}
+    return t.trim();
+  };
+})();
 </script>
 </body>
 </html>
