@@ -399,7 +399,8 @@ function viewRAtt(){
   }
   return h+`<div class="card"><b>تقرير الحضور والغياب</b>${msg?` <span class="ok">${msg}</span>`:''}${c.students.length?tbl(ATT_HEAD,attRows(c),r=>r[2]>=4):'<p class="mu">لا يوجد طلاب.</p>'}<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="exportAtt()">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfAtt()">تصدير إلى PDF</button></div></div>`;
 }
-const examCols=c=>c.exams.filter(e=>!db.rt||db.rt==='all'||e.term===db.rt);
+const examBy=c=>c.exams.filter(e=>!db.rt||db.rt==='all'||e.term===db.rt);
+const examCols=c=>examBy(c).filter(e=>!(db.rxo||[]).includes(e.id));
 const examHead=c=>['الطالب',...examCols(c).map(e=>(e.subject?e.subject+' ':'')+e.name+' ('+e.max+')'),'المعدل'];
 function examRows(c){const E=examCols(c);return c.students.map(s=>{
   const pc=E.map(e=>typeof e.scores[s.id]==='number'?e.scores[s.id]/e.max*100:null).filter(x=>x!==null);
@@ -409,7 +410,7 @@ function exportExam(){const c=cls();csvOut('exams-'+c.name,examHead(c),examRows(
 function viewRExam(){
   const c=cls();if(!c)return backBtn()+'<div class="empty">أضف صفًا أولاً.</div>';
   const ok=c.exams.length&&c.students.length&&examCols(c).length;
-  return backBtn()+classSel()+`<select onchange="db.rt=this.value;save();render()" style="width:100%;margin-bottom:10px"><option value="all">كل الأنواع</option>${TERMS.map(t=>`<option ${db.rt===t?'selected':''}>${t}</option>`).join('')}</select>
+  return backBtn()+classSel()+`<select onchange="db.rt=this.value;save();render()" style="width:100%;margin-bottom:10px"><option value="all">كل الأنواع</option>${TERMS.map(t=>`<option ${db.rt===t?'selected':''}>${t}</option>`).join('')}</select>${c.exams.length?exCard('rxo',examBy(c),db.rt&&db.rt!=='all'?'امتحانات '+db.rt:'كل الامتحانات'):''}
   <div class="card"><b>تقرير الامتحانات</b>${msg?` <span class="ok">${msg}</span>`:''}${ok?`<div class="wide">${tbl(examHead(c),examRows(c))}</div>`:'<p class="mu">لا توجد امتحانات أو طلاب لهذا الاختيار.</p>'}${ok?'<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="exportExam()">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfExam()">تصدير إلى PDF</button></div>':''}</div>`;
 }
 
@@ -742,9 +743,40 @@ const TN={d1:'يومي الفصل الأول',d2:'يومي الفصل الثان
 const trg=t=>(db.tr||{})[t]||{};
 function setTr(t,k,v){db.tr=db.tr||{};db.tr[t]=Object.assign({},db.tr[t]||{},{[k]:v});save();render()}
 function clrTr(t){if(db.tr)delete db.tr[t];save();render()}
-const trOk=t=>{const r=trg(t);return dt=>(!r.f||dt>=r.f)&&(!r.t||dt<=r.t)};
-const trTxt=t=>{const r=trg(t);return r.f||r.t?' (من '+(r.f||'البداية')+' إلى '+(r.t||'اليوم')+')':''};
+const pers=t=>(db.per||{})[t]||[];
+const pact=t=>{const a=(db.pon||{})[t]||[];return pers(t).filter(p=>a.includes(p.id))};
+const inP=(p,dt)=>(!p.f||dt>=p.f)&&(!p.t||dt<=p.t);
+const trOk=t=>{const A=pact(t);if(A.length)return dt=>A.some(p=>inP(p,dt));const r=trg(t);return dt=>(!r.f||dt>=r.f)&&(!r.t||dt<=r.t)};
+const trTxt=t=>{const A=pact(t);if(A.length)return ' ('+A.map(p=>p.name).join(' + ')+')';const r=trg(t);return r.f||r.t?' (من '+(r.f||'البداية')+' إلى '+(r.t||'اليوم')+')':''};
 const up=x=>Math.ceil(Math.round(x*1000)/1000);
+
+let perEd={};
+const pdate=v=>v||'';
+function perTog(t,id){db.pon=db.pon||{};const a=db.pon[t]=db.pon[t]||[];const i=a.indexOf(id);if(i<0)a.push(id);else a.splice(i,1);save();render()}
+function perAll(t){if(db.pon)db.pon[t]=[];save();render()}
+function perEdit(id){perEd[id]=1;render()}
+function perCancel(id){delete perEd[id];render()}
+function perSave(t,id){
+  const n=document.getElementById('pn_'+id),f=document.getElementById('pf_'+id),e=document.getElementById('pt_'+id);if(!n)return;
+  const nm=n.value.trim();if(!nm){n.style.borderColor='var(--a)';n.focus();return}
+  if(f.value&&e.value&&f.value>e.value){e.style.borderColor='var(--a)';e.focus();return}
+  db.per=db.per||{};const L=db.per[t]=db.per[t]||[];
+  if(id==='new_'+t)L.push({id:uid(),name:nm,f:f.value,t:e.value});else{const p=L.find(x=>x.id===id);if(p){p.name=nm;p.f=f.value;p.t=e.value}}
+  delete perEd[id];save();render()}
+function perDel(t,id){const k='per|'+id;if(armed!==k){armed=k;render();return}db.per[t]=pers(t).filter(p=>p.id!==id);if(db.pon&&db.pon[t])db.pon[t]=db.pon[t].filter(x=>x!==id);delete perEd[id];armed=null;save();render()}
+function perCard(t){
+  const A=pact(t),L=pers(t),inp=(id,p)=>`<input id="pn_${id}" placeholder="اسم الفترة (مثل: الشهر الأول)" value="${esc(p?p.name:'')}" style="width:100%"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px"><div style="min-width:0"><label class="mu" style="font-size:12px">من تاريخ</label><input id="pf_${id}" type="date" style="width:100%;min-width:0" value="${p?pdate(p.f):''}"></div><div style="min-width:0"><label class="mu" style="font-size:12px">إلى تاريخ</label><input id="pt_${id}" type="date" style="width:100%;min-width:0" value="${p?pdate(p.t):''}"></div></div>`;
+  return `<div class="card"><b>الأشهر / الفترات</b><p class="mu" style="margin:4px 0 8px">عرّف فترة لكل شهر (مثل الشهر الأول من 1/10 إلى 31/10) ثم اضغط على الفترات التي تريد حسابها. يمكنك اختيار أكثر من فترة، وعند اختيار فترة تُهمل فترة التاريخ الموجودة تحتها.</p>
+  <div class="chips" style="flex-wrap:wrap"><button class="${A.length?'':'on'}" onclick="perAll('${t}')">كل الفترة</button>${L.map(p=>`<button class="${A.includes(p)?'on':''}" onclick="perTog('${t}','${p.id}')">${esc(p.name)}</button>`).join('')}</div>
+  ${L.map(p=>perEd[p.id]?`<div style="padding:8px 0;border-top:1px solid var(--bd)">${inp(p.id,p)}<div class="row" style="margin-top:6px"><button class="p" onclick="perSave('${t}','${p.id}')">حفظ</button><button onclick="perCancel('${p.id}')">إلغاء</button></div></div>`:`<div class="st" style="padding:6px 0;border-top:1px solid var(--bd)"><span><b>${esc(p.name)}</b><br><span class="mu">من ${p.f||'البداية'} إلى ${p.t||'اليوم'}</span></span><span class="row" style="gap:6px"><button onclick="perEdit('${p.id}')">تعديل</button><button ${armed==='per|'+p.id?'style="background:#c0152f;color:#fff"':''} onclick="perDel('${t}','${p.id}')">${armed==='per|'+p.id?'تأكيد الحذف':'حذف'}</button></span></div>`).join('')}
+  <div style="padding:8px 0 0;border-top:1px solid var(--bd);margin-top:6px"><b style="font-size:14px">+ فترة جديدة</b>${inp('new_'+t,null)}<button class="p" style="margin-top:6px" onclick="perSave('${t}','new_${t}')">حفظ الفترة</button></div></div>`;
+}
+function exCard(key,list,title){
+  const off=db[key]||[],n=list.length,on=list.filter(e=>!off.includes(e.id)).length;
+  return `<div class="card"><b>${title}</b> <span class="mu">(${n} امتحان، المختار ${on})</span><div class="chips" style="flex-wrap:wrap;margin-top:8px">${list.map(e=>`<button class="${off.includes(e.id)?'':'on'}" onclick="exTog('${key}','${e.id}')">${esc((e.subject?e.subject+' - ':'')+e.name)}</button>`).join('')}</div><div class="row"><button onclick="exSel('${key}',true,'${list.map(e=>e.id).join(',')}')">تحديد الكل</button><button onclick="exSel('${key}',false,'${list.map(e=>e.id).join(',')}')">إلغاء الكل</button></div></div>`;
+}
+function exTog(key,id){const a=db[key]=db[key]||[],i=a.indexOf(id);if(i<0)a.push(id);else a.splice(i,1);save();render()}
+function exSel(key,on,ids){const L=ids.split(',').filter(Boolean),a=db[key]=db[key]||[];db[key]=on?a.filter(x=>!L.includes(x)):a.concat(L.filter(x=>!a.includes(x)));save();render()}
 let srchQ='';
 const expNm=c=>srchQ?' - '+srchQ:'';
 const expBox=()=>`<p id="exph" class="mu" style="margin:8px 2px">التصدير (Excel وPDF) يشمل كل الطلاب. اكتب اسم طالب في خانة البحث لتصدير بياناته فقط.</p>`;
@@ -764,7 +796,7 @@ function pdfD(t){const c=cls();pdfOut(TN[t]+trTxt(t)+' - '+clsLabel(c)+expNm(c),
 function viewGD(t){
   srchQ='';const c=cls();if(!c)return '<div class="empty">أضف صفاً أولاً من «المزيد ← الصفوف».</div>';
   const r=trg(t),w=dsc();
-  let h=classSel()+`<div class="card"><b>فترة ${TN[t]}</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="min-width:0"><label class="mu" style="font-size:12px">من تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.f||''}" onchange="setTr('${t}','f',this.value)"></div><div style="min-width:0"><label class="mu" style="font-size:12px">إلى تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.t||''}" onchange="setTr('${t}','t',this.value)"></div></div><div class="row" style="margin-top:8px"><button onclick="clrTr('${t}')">كل الفترة</button></div><p class="mu" style="margin:8px 0 0">تُحسب الدرجة من التقييم والحضور المسجّلين داخل هذه الفترة فقط.</p></div>`;
+  let h=classSel()+perCard(t)+`<div class="card"><b>فترة ${TN[t]}</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="min-width:0"><label class="mu" style="font-size:12px">من تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.f||''}" onchange="setTr('${t}','f',this.value)"></div><div style="min-width:0"><label class="mu" style="font-size:12px">إلى تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.t||''}" onchange="setTr('${t}','t',this.value)"></div></div><div class="row" style="margin-top:8px"><button onclick="clrTr('${t}')">كل الفترة</button></div><p class="mu" style="margin:8px 0 0">تُحسب الدرجة من التقييم والحضور المسجّلين داخل هذه الفترة فقط.</p></div>`;
   h+=`<div class="row" style="margin-bottom:10px"><input type="search" placeholder="🔍 بحث عن طالب/ة" oninput="gfilter(this.value)"></div>`;
   if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً من «المزيد ← الطلاب».</div>';
   h+=`<div class="card"><b>جمع / طرح درجة لجميع الطلاب</b><p class="mu" style="margin:4px 0 8px">اكتب رقماً (مثل 1 أو 0.5) ثم أضفه لدرجة كل الطلاب أو اخصمه منها. يُضاف إلى عمود «تعديل» ويمكنك تعديله لكل طالب بعدها.</p><div class="row"><input id="allv" type="text" data-num="1" inputmode="decimal" placeholder="الرقم" style="width:90px"><button class="p" onclick="adAll('${t}',1)">+ للجميع</button><button onclick="adAll('${t}',-1)">− من الجميع</button><button ${armed==='adall|'+t?'style="background:#c0152f;color:#fff"':''} onclick="adClr('${t}')">${armed==='adall|'+t?'تأكيد المسح':'مسح كل التعديلات'}</button></div></div>`;
@@ -780,21 +812,21 @@ let tgEd={};
 function saveExMax(tn){const el=document.getElementById('tgin');if(!el)return;const n=parseFloat(String(el.value).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g,'.'));db.exmx=db.exmx||{};if(isNaN(n)||n<=0)delete db.exmx[tn];else db.exmx[tn]=n;delete tgEd[tn];save();render()}
 function delExMax(tn){const k='tg|'+tn;if(armed!==k){armed=k;render();return}if(db.exmx)delete db.exmx[tn];delete tgEd[tn];armed=null;save();render()}
 function editExMax(tn){tgEd[tn]=1;render();const i=document.getElementById('tgin');if(i)i.focus()}
-function tCalc(c,t){const ex=c.exams.filter(e=>e.term===TT[t][0]),mx=ex.reduce((a,e)=>a+(+e.max||0),0),tg=exTgt(TT[t][0]),tgt=tg&&mx?tg:mx;return {ex,mx,tgt,rows:dCalc(c,t).map(({s,e,a,tot})=>{const raw=ex.reduce((x,q)=>x+(typeof q.scores[s.id]==='number'?q.scores[s.id]:0),0),es=tg&&mx?up(raw/mx*tg):raw;return {s,a,es,d:tot,tot:up(es+tot)}})}}
-function tHead(c,t){const T=tCalc(c,t);return ['الطالب',...T.ex.map(e=>(e.subject?e.subject+' - ':'')+e.name+' (من '+e.max+')'),'مجموع الامتحانات (من '+fmt(T.tgt)+')','اليومي (من '+fmt(sumW()+dsc().att)+')','المجموع (من '+fmt(T.tgt+sumW()+dsc().att)+')']}
-function tRows(c,t){const T=tCalc(c,t);return T.rows.filter(r=>!srchQ||r.s.name.includes(srchQ)).map(r=>[r.s.name,...T.ex.map(e=>typeof e.scores[r.s.id]==='number'?fmt(e.scores[r.s.id]):''),fmt(r.es),fmt(r.d),fmt(r.tot)])}
+function tCalc(c,t){const off=db['txo'+t]||[],ex=c.exams.filter(e=>e.term===TT[t][0]&&!off.includes(e.id)),mx=ex.reduce((a,e)=>a+(+e.max||0),0),tg=exTgt(TT[t][0]),tgt=tg&&mx?tg:mx,A=pact(t),per=A.length>=2?A:[];return {ex,mx,tgt,per,rows:dCalc(c,t).map(({s,e,a,tot})=>{const raw=ex.reduce((x,q)=>x+(typeof q.scores[s.id]==='number'?q.scores[s.id]:0),0),es=tg&&mx?up(raw/mx*tg):raw,pd=per.map(p=>{const ok=d=>inP(p,d),e2=evCalc(c,s.id,ok),a2=attCalc(c,s.id,ok);return up(Math.max(0,e2.tot+a2.pts))});return {s,a,es,d:tot,pd,tot:up(es+tot)}})}}
+function tHead(c,t){const T=tCalc(c,t);return ['الطالب',...T.ex.map(e=>(e.subject?e.subject+' - ':'')+e.name+' (من '+e.max+')'),'مجموع الامتحانات (من '+fmt(T.tgt)+')',...T.per.map(p=>'يومي '+p.name),'اليومي (من '+fmt(sumW()+dsc().att)+')','المجموع (من '+fmt(T.tgt+sumW()+dsc().att)+')']}
+function tRows(c,t){const T=tCalc(c,t);return T.rows.filter(r=>!srchQ||r.s.name.includes(srchQ)).map(r=>[r.s.name,...T.ex.map(e=>typeof e.scores[r.s.id]==='number'?fmt(e.scores[r.s.id]):''),fmt(r.es),...r.pd.map(fmt),fmt(r.d),fmt(r.tot)])}
 function exportT(t){const c=cls();csvOut(TT[t][1]+'-'+c.name+expNm(c),tHead(c,t),tRows(c,t))}
 function pdfT(t){const c=cls();pdfOut(TT[t][1]+trTxt(t)+' - '+clsLabel(c)+expNm(c),tHead(c,t),tRows(c,t))}
 function viewGT(t){
   srchQ='';const c=cls();if(!c)return '<div class="empty">أضف صفاً أولاً من «المزيد ← الصفوف».</div>';
   const r=trg(t),T=tCalc(c,t);
-  let h=classSel()+`<div class="card"><b>فترة ${TT[t][1]}</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="min-width:0"><label class="mu" style="font-size:12px">من تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.f||''}" onchange="setTr('${t}','f',this.value)"></div><div style="min-width:0"><label class="mu" style="font-size:12px">إلى تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.t||''}" onchange="setTr('${t}','t',this.value)"></div></div><div class="row" style="margin-top:8px"><button onclick="clrTr('${t}')">كل الفترة</button></div><p class="mu" style="margin:8px 0 0">الفترة تخص اليومي والغياب. الامتحانات تؤخذ كلها من امتحانات «${TT[t][0]}».</p></div>`;
+  let h=classSel()+perCard(t)+exCard('txo'+t,c.exams.filter(e=>e.term===TT[t][0]),'امتحانات '+TT[t][0])+`<div class="card"><b>فترة ${TT[t][1]}</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="min-width:0"><label class="mu" style="font-size:12px">من تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.f||''}" onchange="setTr('${t}','f',this.value)"></div><div style="min-width:0"><label class="mu" style="font-size:12px">إلى تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.t||''}" onchange="setTr('${t}','t',this.value)"></div></div><div class="row" style="margin-top:8px"><button onclick="clrTr('${t}')">كل الفترة</button></div><p class="mu" style="margin:8px 0 0">الفترة تخص اليومي والغياب. الامتحانات تؤخذ كلها من امتحانات «${TT[t][0]}».</p></div>`;
   h+=`<div class="row" style="margin-bottom:10px"><input type="search" placeholder="🔍 بحث عن طالب/ة" oninput="gfilter(this.value)"></div>`;
   if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً من «المزيد ← الطلاب».</div>';
   if(!T.ex.length)h+=`<div class="empty" style="margin-bottom:10px">لا توجد امتحانات مسجّلة للـ${TT[t][0]}، والمجموع هنا هو اليومي فقط. أضف امتحاناً واختر الفصل.</div>`;
   const H=tHead(c,t);
   h+=`<div class="gwrap"><table class="gt" id="gtab"><tr>${H.map((x,i)=>`<th${i===0?' class="gsn"':''}>${esc(x)}</th>`).join('')}</tr>`;
-  h+=T.rows.map((q,n)=>`<tr data-n="${esc(q.s.name)}"><td class="gsn">${n+1}. ${esc(q.s.name)}</td>${T.ex.map(e=>`<td>${typeof e.scores[q.s.id]==='number'?fmt(e.scores[q.s.id]):'-'}</td>`).join('')}<td><b>${fmt(q.es)}</b></td><td><b>${fmt(q.d)}</b></td><td class="gtot">${fmt(q.tot)}</td></tr>`).join('');
+  h+=T.rows.map((q,n)=>`<tr data-n="${esc(q.s.name)}"><td class="gsn">${n+1}. ${esc(q.s.name)}</td>${T.ex.map(e=>`<td>${typeof e.scores[q.s.id]==='number'?fmt(e.scores[q.s.id]):'-'}</td>`).join('')}<td><b>${fmt(q.es)}</b></td>${q.pd.map(x=>`<td>${fmt(x)}</td>`).join('')}<td><b>${fmt(q.d)}</b></td><td class="gtot">${fmt(q.tot)}</td></tr>`).join('');
   h+=`</table></div><p class="mu" style="margin:8px 2px">المجموع = درجات امتحانات ${TT[t][0]} + الدرجة اليومية. الامتحان الذي لم تُسجَّل له درجة يُحسب صفراً.</p>${expBox()}<div class="row"><button class="p" style="flex:1" onclick="exportT('${t}')">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfT('${t}')">مشاركة / طباعة PDF</button></div>`;
   return h;
 }
