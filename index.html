@@ -819,15 +819,18 @@ function numW(n){
   return s;
 }
 let orEd={},ocEd={};
-const orVal=(c,sid,k)=>((c.oral||{})[sid]||{})[k];
+const orT=()=>db.ot||'نصف السنة';
+function orMig(c){if(c.oral&&!c.oralMig){c.oralT=c.oralT||{};c.oralT['نصف السنة']=c.oral;c.oralMig=1;delete c.oral}}
+function orD(c){orMig(c);c.oralT=c.oralT||{};return c.oralT[orT()]=c.oralT[orT()]||{}}
+const orVal=(c,sid,k)=>{orMig(c);return (((c.oralT||{})[orT()]||{})[sid]||{})[k]};
 const orNum=v=>parseFloat(String(v).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g,'.'));
 function orEdit(key){orEd[key]=1;render()}
 function orCancel(key){delete orEd[key];render()}
 function orSave(sid,k){
   const c=cls(),el=document.getElementById('oi_'+sid+'_'+k),col=ocs().find(x=>x.id===k);if(!c||!el||!col)return;
   const n=orNum(el.value);if(el.value.trim()===''||isNaN(n)||n<0||n>col.m){el.style.borderColor='var(--a)';el.focus();return}
-  c.oral=c.oral||{};(c.oral[sid]=c.oral[sid]||{})[k]=n;delete orEd[sid+'|'+k];save();render()}
-function orDel(sid,k){const key='or|'+sid+'|'+k;if(armed!==key){armed=key;render();return}const c=cls();if(c.oral&&c.oral[sid]){delete c.oral[sid][k];if(!Object.keys(c.oral[sid]).length)delete c.oral[sid]}delete orEd[sid+'|'+k];armed=null;save();render()}
+  const d=orD(c);(d[sid]=d[sid]||{})[k]=n;delete orEd[sid+'|'+k];save();render()}
+function orDel(sid,k){const key='or|'+sid+'|'+k;if(armed!==key){armed=key;render();return}const c=cls();const d=orD(c);if(d[sid]){delete d[sid][k];if(!Object.keys(d[sid]).length)delete d[sid]}delete orEd[sid+'|'+k];armed=null;save();render()}
 function orCell(c,s,col){
   const v=orVal(c,s.id,col.id),has=typeof v==='number',key=s.id+'|'+col.id,ak='or|'+s.id+'|'+col.id;
   if(has&&!orEd[key])return `<b>${fmt(v)}</b><br><button onclick="orEdit('${key}')">تعديل</button> <button ${armed===ak?'style="background:#c0152f;color:#fff"':''} onclick="orDel('${s.id}','${col.id}')">${armed===ak?'تأكيد':'حذف'}</button>`;
@@ -836,8 +839,8 @@ function orCell(c,s,col){
 function orTot(c,sid){const cols=ocs();let t=0,any=false;cols.forEach(x=>{const v=orVal(c,sid,x.id);if(typeof v==='number'){t+=v;any=true}});return any?Math.round(t*100)/100:null}
 function orHead(){const cols=ocs(),mx=cols.reduce((a,x)=>a+(+x.m||0),0);return ['الطالب',...cols.map(x=>x.n+' (من '+fmt(x.m)+')'),'المجموع رقماً (من '+fmt(mx)+')','المجموع كتابةً']}
 function orRows(c){return c.students.filter(s=>!srchQ||s.name.includes(srchQ)).map(s=>{const t=orTot(c,s.id);return [s.name,...ocs().map(x=>{const v=orVal(c,s.id,x.id);return typeof v==='number'?fmt(v):''}),t===null?'':fmt(t),t===null?'':numW(t)]})}
-function exportOral(){const c=cls();csvOut('الشفوي-'+c.name+expNm(c),orHead(),orRows(c))}
-function pdfOral(){const c=cls();pdfOut('الشفوي - '+clsLabel(c)+expNm(c),orHead(),orRows(c))}
+function exportOral(){const c=cls();csvOut('الشفوي-'+orT()+'-'+c.name+expNm(c),orHead(),orRows(c))}
+function pdfOral(){const c=cls();pdfOut('الشفوي '+orT()+' - '+clsLabel(c)+expNm(c),orHead(),orRows(c))}
 /* أعمدة الشفوي */
 function ocEdit(id){ocEd[id]=1;render()}
 function ocCancel(id){delete ocEd[id];render()}
@@ -856,7 +859,7 @@ function ocCard(){
 }
 function viewOral(){
   srchQ='';const c=cls();if(!c)return '<div class="empty">أضف صفاً أولاً من «المزيد ← الصفوف».</div>';
-  let h=classSel()+ocCard()+`<div class="row" style="margin-bottom:10px"><input type="search" placeholder="🔍 بحث عن طالب/ة" oninput="gfilter(this.value)"></div>`;
+  let h=classSel()+`<div class="card"><b>نوع الامتحان الشفوي</b><div class="chips" style="flex-wrap:wrap;margin-top:8px">${TERMS.map(t=>`<button class="${orT()===t?'on':''}" onclick="db.ot='${t}';save();render()">${t}</button>`).join('')}</div><p class="mu" style="margin:0">لكل نوع درجاته المستقلة (نصف السنة، نهاية السنة...).</p></div>`+ocCard()+`<div class="row" style="margin-bottom:10px"><input type="search" placeholder="🔍 بحث عن طالب/ة" oninput="gfilter(this.value)"></div>`;
   if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً من «المزيد ← الطلاب».</div>';
   const H=orHead();
   h+=`<div class="gwrap"><table class="gt" id="gtab"><tr>${H.map((x,i)=>`<th${i===0?' class="gsn"':''}>${esc(x)}</th>`).join('')}</tr>`;
@@ -868,45 +871,85 @@ function viewOral(){
 const PS0={dir:'المديرية العامة للتربية في محافظة الأنبار',sch:'',teacher:'علي جبار حسين',principal:'محمد هلال',year:'2026 - 2027',logo:''};
 const ps=()=>Object.assign({},PS0,db.ps||{});
 const toAI=s=>String(s).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
-function sheetHtml(o){
-  const P=ps(),col=o.cols,nc=col.length;
-  const head=`<tr><th rowspan="2" style="width:9mm">ت</th><th rowspan="2" style="min-width:52mm">اسم التلميذ</th>${col.map(x=>`<th rowspan="2">${esc(x.n)}${x.m?`<br><small>${toAI(fmt(x.m))}</small>`:''}</th>`).join('')}<th colspan="2">الدرجة</th></tr><tr><th style="width:16mm">رقماً</th><th style="min-width:34mm">كتابةً</th></tr>`;
-  const rows=o.rows.map((r,i)=>`<tr><td>${toAI(i+1)}</td><td class="nm">${esc(r.n)}</td>${r.v.map(v=>`<td>${v===''||v==null?'':toAI(v)}</td>`).join('')}<td><b>${r.t==null?'':toAI(fmt(r.t))}</b></td><td class="wd">${r.t==null?'':esc(numW(r.t))}</td></tr>`).join('');
-  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>
-@page{size:A4;margin:8mm 10mm}
-*{box-sizing:border-box}body{margin:0;font-family:'Amiri','Traditional Arabic','Geeza Pro','Noto Naskh Arabic',serif;color:#000;background:#fff;font-size:13pt}
-table.wrap{width:100%;border-collapse:collapse}table.wrap>thead>tr>td,table.wrap>tbody>tr>td,table.wrap>tfoot>tr>td{padding:0;border:0}
-.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6mm}
-.box{flex:1;border:1.5px solid #6b8cae;border-radius:14px;padding:6px 10px;text-align:center;font-size:13pt;line-height:1.7}
-.logo{width:28mm;height:28mm;display:flex;align-items:center;justify-content:center}.logo img{max-width:100%;max-height:100%}
-table.meta{border-collapse:collapse;width:62mm;font-size:11pt}table.meta td{border:1.5px solid #000;padding:2px 6px;text-align:center;font-weight:700}table.meta td.k{width:20mm;background:#f2f2f2}
-h2{text-align:center;font-weight:400;font-size:15pt;margin:2mm 0 4mm}
-table.g{width:100%;border-collapse:collapse;font-size:12pt}table.g th,table.g td{border:1.5px solid #000;padding:3px 4px;text-align:center}table.g th{background:#eef1f7;font-weight:700}table.g thead{display:table-header-group}table.g tr{page-break-inside:avoid}
-td.nm{text-align:right;font-weight:700;white-space:nowrap}td.wd{font-size:11pt}small{font-weight:400}
-.foot{position:fixed;left:0;right:0;bottom:2mm;display:flex;justify-content:space-between;padding:0 6mm;font-size:13pt}
-.foot div{width:75mm;text-align:center;line-height:2}.foot .s{border-bottom:1px dotted #000;height:9mm;margin-top:2mm}
-.sp{height:36mm}
-</style></head><body>
-<table class="wrap"><thead><tr><td></td></tr></thead><tfoot><tr><td><div class="sp"></div></td></tr></tfoot><tbody><tr><td>
-<div class="top"><div class="box">${esc(P.dir)}<br>${esc(o.school||P.sch)}</div><div class="logo">${P.logo?`<img src="${P.logo}">`:''}</div>
-<table class="meta"><tr><td class="k">الصف :</td><td>${esc(o.cname)}</td></tr><tr><td class="k">المادة :</td><td>${esc(o.subject||'')}</td></tr><tr><td class="k">التاريخ :</td><td>${esc(toAI(o.date||''))}</td></tr></table></div>
-<h2>${esc(o.title)}${P.year?' للعام الدراسي / '+esc(toAI(P.year)):''}</h2>
-<table class="g"><thead>${head}</thead><tbody>${rows}</tbody></table>
-</td></tr></tbody></table>
-<div class="foot"><div>مدرس المادة<br><b>${esc(P.teacher)}</b><div class="s">التوقيع</div></div><div>المدير<br><b>${esc(P.principal)}</b><div class="s">التوقيع</div></div></div>
-</body></html>`;
+/* ===== رسم كشف الدرجات كصور PDF (نفس الشكل في المعاينة والملف) ===== */
+const SFONT='Amiri,"Geeza Pro","Noto Naskh Arabic","Segoe UI",Tahoma,Arial,sans-serif';
+function loadImg(src){return new Promise(r=>{if(!src)return r(null);const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src})}
+async function sheetPages(o){
+  const P=ps(),W=1240,H=1754,M=59,TW=W-2*M,cols=o.cols,nc=cols.length,logo=await loadImg(P.logo);
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+  const fit=(t,w,px,b)=>{t=String(t==null?'':t);let s=px;x.font=(b?'bold ':'')+s+'px '+SFONT;while(s>13&&x.measureText(t).width>w){s--;x.font=(b?'bold ':'')+s+'px '+SFONT}return s};
+  const txt=(t,cxr,y,w,px,b,al)=>{t=String(t==null?'':t);if(!t)return;fit(t,w,px,b);x.direction='rtl';x.fillStyle='#000';x.textBaseline='middle';x.textAlign=al||'center';x.fillText(t,cxr,y)};
+  const wT=53,wN=95,wW=200,fixed=wT+wN+wW,cw=nc?Math.floor(Math.min(150,(TW-fixed-280)/nc)):0,wName=TW-fixed-nc*cw;
+  const widths=[wT,wName,...cols.map(()=>cw),wN,wW];
+  const cell=(xr,y,w,h,fill)=>{if(fill){x.fillStyle=fill;x.fillRect(xr-w,y,w,h)}x.strokeStyle='#000';x.lineWidth=2;x.strokeRect(xr-w,y,w,h)};
+  const pages=[];
+  const footer=()=>{
+    const cxs=[[W-M-230,'مدرس المادة',P.teacher],[M+230,'المدير',P.principal]];
+    cxs.forEach(([cx,l,n])=>{txt(l,cx,H-190,420,28,false);txt(n,cx,H-145,420,30,true);txt('التوقيع',cx,H-98,420,28,false);x.setLineDash([3,4]);x.strokeStyle='#000';x.lineWidth=1.5;x.beginPath();x.moveTo(cx-200,H-52);x.lineTo(cx+200,H-52);x.stroke();x.setLineDash([])});
+  };
+  const tHead=y=>{
+    let xr=W-M;const h1=44,h2=44;
+    const labs=[['ت',''],['اسم التلميذ','']].concat(cols.map(c=>[c.n,c.m?toAI(fmt(c.m)):'']));
+    labs.forEach(([l,m],i)=>{const w=widths[i];cell(xr,y,w,h1+h2,'#eef1f7');if(m){txt(l,xr-w/2,y+30,w-8,26,true);txt(m,xr-w/2,y+62,w-8,20,false)}else txt(l,xr-w/2,y+h1,w-8,26,true);xr-=w});
+    const wd=widths[widths.length-2]+widths[widths.length-1];cell(xr,y,wd,h1,'#eef1f7');txt('الدرجة',xr-wd/2,y+h1/2+2,wd,26,true);
+    cell(xr,y+h1,widths[widths.length-2],h2,'#eef1f7');txt('رقماً',xr-widths[widths.length-2]/2,y+h1+h2/2+2,100,26,true);
+    xr-=widths[widths.length-2];cell(xr,y+h1,widths[widths.length-1],h2,'#eef1f7');txt('كتابةً',xr-widths[widths.length-1]/2,y+h1+h2/2+2,190,26,true);
+    return y+h1+h2;
+  };
+  const start=first=>{
+    x.fillStyle='#fff';x.fillRect(0,0,W,H);x.setLineDash([]);let y=47;
+    if(first){
+      const bw=TW-165-366-28,bh=110,by=y+(165-bh)/2;
+      x.strokeStyle='#6b8cae';x.lineWidth=3;x.beginPath();x.roundRect?x.roundRect(W-M-bw,by,bw,bh,28):x.rect(W-M-bw,by,bw,bh);x.stroke();
+      txt(P.dir,W-M-bw/2,by+bh/2-24,bw-24,30,false);txt(o.school||P.sch,W-M-bw/2,by+bh/2+24,bw-24,30,false);
+      if(logo){const k=Math.min(165/logo.width,165/logo.height);x.drawImage(logo,W-M-bw-14-165+(165-logo.width*k)/2,y+(165-logo.height*k)/2,logo.width*k,logo.height*k)}
+      const mx=M+366,mh=44,my=y+(165-3*mh)/2;
+      [['الصف :',o.cname],['المادة :',o.subject||''],['التاريخ :',toAI(o.date||'')]].forEach(([k,v],i)=>{cell(mx,my+i*mh,118,mh,'#f2f2f2');txt(k,mx-59,my+i*mh+mh/2+2,110,26,true);cell(mx-118,my+i*mh,248,mh);txt(v,mx-118-124,my+i*mh+mh/2+2,236,26,true)});
+      y+=165+34;
+      txt(o.title+(P.year?' للعام الدراسي / '+toAI(P.year):''),W/2,y+16,TW,34,false);y+=52;
+    }
+    return tHead(y);
+  };
+  const fin=()=>{footer();pages.push(cv.toDataURL('image/jpeg',0.92))};
+  let y=start(true);const RH=46,LIM=H-235;
+  o.rows.forEach((r,i)=>{
+    if(y+RH>LIM){fin();y=start(false)}
+    let xr=W-M;const vals=[toAI(i+1),r.n,...r.v.map(v=>v===''||v==null?'':toAI(v)),r.t==null?'':toAI(fmt(r.t)),r.t==null?'':numW(r.t)];
+    vals.forEach((v,j)=>{const w=widths[j];cell(xr,y,w,RH);if(j===1)txt(v,xr-12,y+RH/2+2,w-20,26,true,'right');else txt(v,xr-w/2,y+RH/2+2,w-10,j===vals.length-1?22:26,j===vals.length-2);xr-=w});
+    y+=RH;
+  });
+  fin();return pages;
 }
-let shO=null;
-function shRender(){const f=document.getElementById('shf');if(!f)return;f.onload=()=>{try{const d=f.contentDocument.documentElement,h=d.scrollHeight,w=document.getElementById('shw').clientWidth,k=Math.min(1,w/794);f.style.height=h+'px';f.style.transform='scale('+k+')';document.getElementById('shw').style.height=(h*k)+'px'}catch(e){}};f.srcdoc=sheetHtml(shO)}
+function pagesToPdf(pages,W,H){
+  const enc=new TextEncoder(),chunks=[],offs=[];let off=0;
+  const push=b=>{if(typeof b==='string')b=enc.encode(b);chunks.push(b);off+=b.length};
+  const N=pages.length,total=2+3*N;
+  push('%PDF-1.4\n');
+  offs[1]=off;push('1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n');
+  offs[2]=off;push('2 0 obj\n<</Type/Pages/Kids['+pages.map((_,i)=>(3+3*i)+' 0 R').join(' ')+']/Count '+N+'>>\nendobj\n');
+  pages.forEach((u,i)=>{
+    const bin=atob(u.split(',')[1]),img=new Uint8Array(bin.length);for(let k=0;k<bin.length;k++)img[k]=bin.charCodeAt(k);
+    const pg=3+3*i,ct=4+3*i,im=5+3*i,cs='q 595.32 0 0 841.92 0 0 cm /Im0 Do Q';
+    offs[pg]=off;push(pg+' 0 obj\n<</Type/Page/Parent 2 0 R/MediaBox[0 0 595.32 841.92]/Resources<</XObject<</Im0 '+im+' 0 R>>>>/Contents '+ct+' 0 R>>\nendobj\n');
+    offs[ct]=off;push(ct+' 0 obj\n<</Length '+cs.length+'>>\nstream\n'+cs+'\nendstream\nendobj\n');
+    offs[im]=off;push(im+' 0 obj\n<</Type/XObject/Subtype/Image/Width '+W+'/Height '+H+'/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length '+img.length+'>>\nstream\n');push(img);push('\nendstream\nendobj\n');
+  });
+  const xo=off;push('xref\n0 '+(total+1)+'\n0000000000 65535 f \n');
+  for(let i=1;i<=total;i++)push(String(offs[i]).padStart(10,'0')+' 00000 n \n');
+  push('trailer\n<</Size '+(total+1)+'/Root 1 0 R>>\nstartxref\n'+xo+'\n%%EOF');
+  const out=new Uint8Array(off);let p=0;chunks.forEach(c=>{out.set(c,p);p+=c.length});return out;
+}
+let shO=null,shPg=[];
+async function shRender(){const w=document.getElementById('shw');if(!w)return;w.innerHTML='<p class="mu" style="padding:12px">جارٍ تجهيز الكشف...</p>';try{shPg=await sheetPages(shO);w.innerHTML=shPg.map(u=>`<img src="${u}" style="width:100%;display:block;border-bottom:6px solid var(--bg)">`).join('')}catch(e){w.innerHTML='<p class="mu" style="padding:12px">تعذّر تجهيز الكشف</p>'}}
 function shClose(){const e=document.getElementById('shov');if(e)e.remove()}
-function shSet(k,v){shO[k]=v;clearTimeout(shSet.t);shSet.t=setTimeout(shRender,250)}
-function shPrint(){const f=document.getElementById('shf');try{f.contentWindow.focus();f.contentWindow.print()}catch(e){alert('تعذّرت الطباعة من هذه الصفحة')}}
+function shSet(k,v){shO[k]=v;clearTimeout(shSet.t);shSet.t=setTimeout(shRender,350)}
+async function shPdf(){if(!shPg.length)return;const b=pagesToPdf(shPg,1240,1754);await dl(String(shO.title).replace(/\s+/g,'-')+'-'+String(shO.cname).replace(/\s+/g,'-')+'.pdf',b)}
 function openSheet(o){
   shO=o;shClose();
   const d=document.createElement('div');d.id='shov';d.style.cssText='position:fixed;inset:0;z-index:90;background:var(--bg);overflow:auto;padding:10px';
-  d.innerHTML=`<div class="card" style="position:sticky;top:0;z-index:2"><div class="row" style="gap:6px;flex-wrap:wrap"><button class="p" onclick="shPrint()">🖨 طباعة / حفظ PDF</button><button onclick="shClose()">إغلاق</button><button onclick="shClose();setView('pset')">⚙ الترويسة والتواقيع</button></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px"><input value="${esc(o.title)}" placeholder="عنوان الكشف" oninput="shSet('title',this.value)"><input value="${esc(o.subject||'')}" placeholder="المادة" oninput="shSet('subject',this.value)"><input value="${esc(o.date||'')}" placeholder="التاريخ (مثل 2026/11/26)" oninput="shSet('date',this.value)"><input value="${esc(o.cname)}" placeholder="الصف" oninput="shSet('cname',this.value)"></div></div>
-  <div id="shw" style="width:100%;overflow:hidden;background:#fff;border:1px solid var(--bd);margin-top:8px"><iframe id="shf" style="width:794px;border:0;transform-origin:top right;background:#fff;display:block;margin-right:0"></iframe></div>`;
+  d.innerHTML=`<div class="card" style="position:sticky;top:0;z-index:2"><div class="row" style="gap:6px;flex-wrap:wrap"><button class="p" onclick="shPdf()">📄 حفظ / مشاركة PDF (ومنها الطباعة)</button><button onclick="shClose()">إغلاق</button><button onclick="shClose();setView('pset')">⚙ الترويسة والتواقيع</button></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px"><input value="${esc(o.title)}" placeholder="عنوان الكشف" oninput="shSet('title',this.value)"><input value="${esc(o.subject||'')}" placeholder="المادة" oninput="shSet('subject',this.value)"><input value="${esc(o.date||'')}" placeholder="التاريخ (مثل 2026/11/26)" oninput="shSet('date',this.value)"><input value="${esc(o.cname)}" placeholder="الصف" oninput="shSet('cname',this.value)"></div><p class="mu" style="margin:6px 0 0;font-size:12px">الشكل في المعاينة هو نفسه في ملف PDF. بعد الحفظ اختر «طباعة» من قائمة المشاركة.</p></div>
+  <div id="shw" style="background:#fff;border:1px solid var(--bd);margin-top:8px"></div>`;
   document.body.appendChild(d);shRender();
 }
 function sheetBase(c){const sc=(db.schools||[]).find(x=>x.id===c.schoolId);return {cname:c.name,school:sc?sc.name:'',date:'    /    / '+new Date().getFullYear()}}
@@ -914,7 +957,7 @@ function sheetFrom(c,title,subject,cols,list){
   return Object.assign(sheetBase(c),{title,subject,cols,rows:list.filter(r=>!srchQ||r.n.includes(srchQ))});
 }
 function printOral(){const c=cls(),cols=ocs();
-  openSheet(sheetFrom(c,'امتحان الشفوي','',cols,c.students.map(s=>({n:s.name,v:cols.map(x=>{const v=orVal(c,s.id,x.id);return typeof v==='number'?fmt(v):''}),t:orTot(c,s.id)}))))}
+  openSheet(sheetFrom(c,'امتحان شفوي '+orT(),'',cols,c.students.map(s=>({n:s.name,v:cols.map(x=>{const v=orVal(c,s.id,x.id);return typeof v==='number'?fmt(v):''}),t:orTot(c,s.id)}))))}
 function printExamSheet(){const c=cls(),E=examCols(c),subs=[...new Set(E.map(e=>e.subject).filter(Boolean))];
   openSheet(sheetFrom(c,'امتحان '+(db.rt&&db.rt!=='all'?db.rt:''),subs.join(' - '),E.map(e=>({n:e.name,m:e.max})),c.students.map(s=>{const v=E.map(e=>typeof e.scores[s.id]==='number'?fmt(e.scores[s.id]):'');const nums=E.filter(e=>typeof e.scores[s.id]==='number');return {n:s.name,v,t:nums.length?Math.round(nums.reduce((a,e)=>a+e.scores[s.id],0)*100)/100:null}})))}
 function printTermSheet(t){const c=cls(),T=tCalc(c,t),subs=[...new Set(T.ex.map(e=>e.subject).filter(Boolean))];
