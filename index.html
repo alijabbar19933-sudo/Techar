@@ -411,7 +411,7 @@ function viewRExam(){
   const c=cls();if(!c)return backBtn()+'<div class="empty">أضف صفًا أولاً.</div>';
   const ok=c.exams.length&&c.students.length&&examCols(c).length;
   return backBtn()+classSel()+`<select onchange="db.rt=this.value;save();render()" style="width:100%;margin-bottom:10px"><option value="all">كل الأنواع</option>${TERMS.map(t=>`<option ${db.rt===t?'selected':''}>${t}</option>`).join('')}</select>${c.exams.length?exCard('rxo',examBy(c),db.rt&&db.rt!=='all'?'امتحانات '+db.rt:'كل الامتحانات'):''}
-  <div class="card"><b>تقرير الامتحانات</b>${msg?` <span class="ok">${msg}</span>`:''}${ok?`<div class="wide">${tbl(examHead(c),examRows(c))}</div>`:'<p class="mu">لا توجد امتحانات أو طلاب لهذا الاختيار.</p>'}${ok?'<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="exportExam()">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfExam()">تصدير إلى PDF</button></div>':''}</div>`;
+  <div class="card"><b>تقرير الامتحانات</b>${msg?` <span class="ok">${msg}</span>`:''}${ok?`<div class="wide">${tbl(examHead(c),examRows(c))}</div>`:'<p class="mu">لا توجد امتحانات أو طلاب لهذا الاختيار.</p>'}${ok?'<div class="row" style="margin-top:10px"><button class="p" style="flex:1" onclick="exportExam()">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfExam()">تصدير إلى PDF</button></div><div class="row" style="margin-top:8px"><button class="p" style="flex:1;background:#1f9d55;border-color:#1f9d55" onclick="printExamSheet()">🖨 طباعة بشكل الكشف الرسمي</button></div>':''}</div>`;
 }
 
 const nm=t=>String(t).replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ک/g,'ك').replace(/\s+/g,' ').trim().toLowerCase();
@@ -658,7 +658,7 @@ function accBanner(){
   return `<div class="card" style="border-color:var(--pr)"><b>☁️ احفظ بياناتك في حساب</b><p class="mu">سجّل بالبريد حتى لا تضيع بياناتك وتفتحها من أي جهاز.</p><button class="p" onclick="setView('settings')">تسجيل الدخول</button></div>`;
 }
 
-const TITLES={home:'الرئيسية',exams:'الامتحانات',more:'المزيد',att:'تسجيل الحضور',exterm:'الامتحانات',schools:'المدارس',classes:'الصفوف',subjects:'المواد',students:'الطلاب',sched:'جدول الحصص',eval:'التقييم والملاحظات',settings:'الاعدادات',rexam:'تقرير الامتحانات',gd1:'يومي الفصل الأول',gd2:'يومي الفصل الثاني',gt1:'مجموع الفصل الأول',gt2:'مجموع الفصل الثاني',gset:'توزيع درجات اليومي',ratt:'تقرير الحضور والغياب',reval:'تقرير التقييم',rfin:'المجموع النهائي',rreg:'سجل الحضور الشهري'};
+const TITLES={home:'الرئيسية',exams:'الامتحانات',more:'المزيد',att:'تسجيل الحضور',exterm:'الامتحانات',schools:'المدارس',classes:'الصفوف',subjects:'المواد',students:'الطلاب',sched:'جدول الحصص',eval:'التقييم والملاحظات',settings:'الاعدادات',rexam:'تقرير الامتحانات',gd1:'يومي الفصل الأول',gd2:'يومي الفصل الثاني',gt1:'مجموع الفصل الأول',gt2:'مجموع الفصل الثاني',oral:'الشفوي',pset:'بيانات الطباعة',gset:'توزيع درجات اليومي',ratt:'تقرير الحضور والغياب',reval:'تقرير التقييم',rfin:'المجموع النهائي',rreg:'سجل الحضور الشهري'};
 const PARENT={home:'home',att:'home',exams:'exams',exterm:'exams'};
 const DCOL=['#c2410c','#0f766e','#7c3aed','#be123c','#4d7c0f','#a21caf','#334e9c'],TCOL=['#0e7490','#be185d','#b45309','#4d7c0f','#6d28d9'];
 function curView(){const v=db.view;return (!v||v==='main')?'home':v}
@@ -712,7 +712,7 @@ function viewMore(){
     ?`<div class="card"><input id="pn" placeholder="اسم المعلم" value="${esc(p.name)}"><input id="pp" type="tel" inputmode="tel" dir="ltr" placeholder="رقم الهاتف" value="${esc(p.phone)}" style="margin-top:6px"><div class="row" style="margin-top:8px"><button class="p" onclick="saveProf()">حفظ</button><button onclick="edit=null;render()">إلغاء</button></div></div>`
     :`<div class="prof"><div class="av">👤</div><div><b>${esc(p.name||'المعلم')}</b>${p.phone?`<span>${esc(p.phone)}</span>`:''}</div><button onclick="edit='PROF';render()">تعديل</button></div>`;
   return head+L([['schools','المدارس'],['classes','الصفوف'],['subjects','المواد'],['students','الطلاب'],['sched','جدول الحصص'],['eval','التقييم والملاحظات']])
-   +'<div class="sec">سجل الدرجات</div>'+L([['gd1','يومي الفصل الأول'],['gd2','يومي الفصل الثاني'],['gt1','مجموع الفصل الأول'],['gt2','مجموع الفصل الثاني']])
+   +'<div class="sec">سجل الدرجات</div>'+L([['gd1','يومي الفصل الأول'],['gd2','يومي الفصل الثاني'],['gt1','مجموع الفصل الأول'],['gt2','مجموع الفصل الثاني'],['oral','الشفوي']])+'<div class="sec">الطباعة</div>'+L([['pset','بيانات الطباعة (الترويسة والتواقيع)']])
    +'<div class="sec">التقارير</div>'+L([['rexam','تقرير الامتحانات'],['ratt','تقرير الحضور والغياب'],['reval','تقرير التقييم'],['rfin','المجموع النهائي'],['rreg','سجل الحضور الشهري']])
    +L([['settings','الاعدادات']]);
 }
@@ -746,8 +746,8 @@ function clrTr(t){if(db.tr)delete db.tr[t];save();render()}
 const pers=t=>(db.per||{})[t]||[];
 const pact=t=>{const a=(db.pon||{})[t]||[];return pers(t).filter(p=>a.includes(p.id))};
 const inP=(p,dt)=>(!p.f||dt>=p.f)&&(!p.t||dt<=p.t);
-const trOk=t=>{const A=pact(t);if(A.length)return dt=>A.some(p=>inP(p,dt));const r=trg(t);return dt=>(!r.f||dt>=r.f)&&(!r.t||dt<=r.t)};
-const trTxt=t=>{const A=pact(t);if(A.length)return ' ('+A.map(p=>p.name).join(' + ')+')';const r=trg(t);return r.f||r.t?' (من '+(r.f||'البداية')+' إلى '+(r.t||'اليوم')+')':''};
+const trOk=t=>{const A=pact(t);if(A.length)return dt=>A.some(p=>inP(p,dt));return dt=>true};
+const trTxt=t=>{const A=pact(t);return A.length?' ('+A.map(p=>p.name).join(' + ')+')':''};
 const up=x=>Math.ceil(Math.round(x*1000)/1000);
 
 let perEd={};
@@ -766,7 +766,7 @@ function perSave(t,id){
 function perDel(t,id){const k='per|'+id;if(armed!==k){armed=k;render();return}db.per[t]=pers(t).filter(p=>p.id!==id);if(db.pon&&db.pon[t])db.pon[t]=db.pon[t].filter(x=>x!==id);delete perEd[id];armed=null;save();render()}
 function perCard(t){
   const A=pact(t),L=pers(t),inp=(id,p)=>`<input id="pn_${id}" placeholder="اسم الفترة (مثل: الشهر الأول)" value="${esc(p?p.name:'')}" style="width:100%"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px"><div style="min-width:0"><label class="mu" style="font-size:12px">من تاريخ</label><input id="pf_${id}" type="date" style="width:100%;min-width:0" value="${p?pdate(p.f):''}"></div><div style="min-width:0"><label class="mu" style="font-size:12px">إلى تاريخ</label><input id="pt_${id}" type="date" style="width:100%;min-width:0" value="${p?pdate(p.t):''}"></div></div>`;
-  return `<div class="card"><b>الأشهر / الفترات</b><p class="mu" style="margin:4px 0 8px">عرّف فترة لكل شهر (مثل الشهر الأول من 1/10 إلى 31/10) ثم اضغط على الفترات التي تريد حسابها. يمكنك اختيار أكثر من فترة، وعند اختيار فترة تُهمل فترة التاريخ الموجودة تحتها.</p>
+  return `<div class="card"><b>الأشهر / الفترات</b><p class="mu" style="margin:4px 0 8px">عرّف فترة لكل شهر (مثل الشهر الأول من 1/10 إلى 31/10) ثم اضغط على الفترات التي تريد حسابها. يمكنك اختيار أكثر من فترة، وإذا لم تختر أي فترة تُحسب كل التواريخ.</p>
   <div class="chips" style="flex-wrap:wrap"><button class="${A.length?'':'on'}" onclick="perAll('${t}')">كل الفترة</button>${L.map(p=>`<button class="${A.includes(p)?'on':''}" onclick="perTog('${t}','${p.id}')">${esc(p.name)}</button>`).join('')}</div>
   ${L.map(p=>perEd[p.id]?`<div style="padding:8px 0;border-top:1px solid var(--bd)">${inp(p.id,p)}<div class="row" style="margin-top:6px"><button class="p" onclick="perSave('${t}','${p.id}')">حفظ</button><button onclick="perCancel('${p.id}')">إلغاء</button></div></div>`:`<div class="st" style="padding:6px 0;border-top:1px solid var(--bd)"><span><b>${esc(p.name)}</b><br><span class="mu">من ${p.f||'البداية'} إلى ${p.t||'اليوم'}</span></span><span class="row" style="gap:6px"><button onclick="perEdit('${p.id}')">تعديل</button><button ${armed==='per|'+p.id?'style="background:#c0152f;color:#fff"':''} onclick="perDel('${t}','${p.id}')">${armed==='per|'+p.id?'تأكيد الحذف':'حذف'}</button></span></div>`).join('')}
   <div style="padding:8px 0 0;border-top:1px solid var(--bd);margin-top:6px"><b style="font-size:14px">+ فترة جديدة</b>${inp('new_'+t,null)}<button class="p" style="margin-top:6px" onclick="perSave('${t}','new_${t}')">حفظ الفترة</button></div></div>`;
@@ -796,7 +796,7 @@ function pdfD(t){const c=cls();pdfOut(TN[t]+trTxt(t)+' - '+clsLabel(c)+expNm(c),
 function viewGD(t){
   srchQ='';const c=cls();if(!c)return '<div class="empty">أضف صفاً أولاً من «المزيد ← الصفوف».</div>';
   const r=trg(t),w=dsc();
-  let h=classSel()+perCard(t)+`<div class="card"><b>فترة ${TN[t]}</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="min-width:0"><label class="mu" style="font-size:12px">من تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.f||''}" onchange="setTr('${t}','f',this.value)"></div><div style="min-width:0"><label class="mu" style="font-size:12px">إلى تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.t||''}" onchange="setTr('${t}','t',this.value)"></div></div><div class="row" style="margin-top:8px"><button onclick="clrTr('${t}')">كل الفترة</button></div><p class="mu" style="margin:8px 0 0">تُحسب الدرجة من التقييم والحضور المسجّلين داخل هذه الفترة فقط.</p></div>`;
+  let h=classSel()+perCard(t);
   h+=`<div class="row" style="margin-bottom:10px"><input type="search" placeholder="🔍 بحث عن طالب/ة" oninput="gfilter(this.value)"></div>`;
   if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً من «المزيد ← الطلاب».</div>';
   h+=`<div class="card"><b>جمع / طرح درجة لجميع الطلاب</b><p class="mu" style="margin:4px 0 8px">اكتب رقماً (مثل 1 أو 0.5) ثم أضفه لدرجة كل الطلاب أو اخصمه منها. يُضاف إلى عمود «تعديل» ويمكنك تعديله لكل طالب بعدها.</p><div class="row"><input id="allv" type="text" data-num="1" inputmode="decimal" placeholder="الرقم" style="width:90px"><button class="p" onclick="adAll('${t}',1)">+ للجميع</button><button onclick="adAll('${t}',-1)">− من الجميع</button><button ${armed==='adall|'+t?'style="background:#c0152f;color:#fff"':''} onclick="adClr('${t}')">${armed==='adall|'+t?'تأكيد المسح':'مسح كل التعديلات'}</button></div></div>`;
@@ -805,6 +805,132 @@ function viewGD(t){
   h+=dCalc(c,t).map(({s,e,a,tot,adj},n)=>`<tr data-n="${esc(s.name)}"${a.a>=4?' class="red"':''}><td class="gsn">${n+1}. ${esc(s.name)}</td><td>${fmt(e.p.tahd)}</td><td>${fmt(e.p.dftr)}</td><td>${fmt(e.p.mush)}</td>${xfs().length?`<td>${fmt(e.p.x)}</td>`:''}<td>${e.bd?'−'+fmt(e.bd):'0'}</td><td><b>${fmt(e.tot)}</b></td><td>${a.a}</td><td>${a.l}</td><td><b>${fmt(a.pts)}</b></td>${adj&&!adEd[t+'|'+s.id]?`<td><b>${adj>0?'+':''}${fmt(adj)}</b><br><button onclick="adEdit('${t}','${s.id}')">تعديل</button> <button ${armed==='ad|'+t+'|'+s.id?'style="background:#c0152f;color:#fff"':''} onclick="adDel('${t}','${s.id}')">${armed==='ad|'+t+'|'+s.id?'تأكيد':'حذف'}</button></td>`:`<td><input id="ad_${s.id}" type="text" data-num="1" style="width:62px;border:1px solid var(--bd);border-radius:8px" placeholder="0" value="${adj?fmt(adj):''}"><br><button class="p" onclick="adSave('${t}','${s.id}')">حفظ</button>${adj?` <button onclick="adCancel('${t}','${s.id}')">إلغاء</button>`:''}</td>`}<td class="gtot">${fmt(tot)}</td></tr>`).join('');
   h+=`</table></div><p class="mu" style="margin:8px 2px">التقييم: متوسط نجوم التحضير والواجب والمشاركة × درجة كل واحد، ثم يُخصم السلوك (${fmt(w.bd)} لكل نجمة). الحضور: ${fmt(w.att)} ويُخصم ${fmt(w.abs)} للغياب و${fmt(w.late)} للتأخر والمجاز لا يُخصم. عمود «تعديل» لإضافة درجات (مثل 1) أو حذفها (مثل -1) من الدرجة اليومية، واتركه فارغاً لإلغاء التعديل. المجموع جاهز لتجمعه مع درجة الامتحان الشهري.</p>${expBox()}<div class="row"><button class="p" style="flex:1" onclick="exportD('${t}')">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfD('${t}')">مشاركة / طباعة PDF</button></div>`;
   return h;
+}
+/* ===== الشفوي ===== */
+const OC0=[{id:'q',n:'القراءة',m:10},{id:'m',n:'المعاني',m:5},{id:'g',n:'القواعد',m:5}];
+const ocs=()=>Array.isArray(db.oc)?db.oc:OC0;
+function numW(n){
+  if(n===null||n===undefined||isNaN(n))return '';
+  n=Math.round(n*100)/100;const ip=Math.floor(n),fr=Math.round((n-ip)*100);
+  const O=['صفر','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة','عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'],T=['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'],H=['','مئة','مئتان','ثلاثمئة','أربعمئة','خمسمئة','ستمئة','سبعمئة','ثمانمئة','تسعمئة'];
+  const w=k=>{if(k<20)return O[k];if(k<100){const u=k%10;return (u?O[u]+' و':'')+T[Math.floor(k/10)]}if(k>=1000)return String(k);const r=k%100;return H[Math.floor(k/100)]+(r?' و'+w(r):'')};
+  let s=w(ip);
+  if(fr){const f=fr===50?(ip?'ونصف':'نصف'):fr===25?(ip?'وربع':'ربع'):fr===75?(ip?'وثلاثة أرباع':'ثلاثة أرباع'):('فاصلة '+(fr%10?w(fr):w(fr/10)));s=ip||fr===50||fr===25||fr===75?(ip?s+' '+f:f):s+' '+f}
+  return s;
+}
+let orEd={},ocEd={};
+const orVal=(c,sid,k)=>((c.oral||{})[sid]||{})[k];
+const orNum=v=>parseFloat(String(v).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g,'.'));
+function orEdit(key){orEd[key]=1;render()}
+function orCancel(key){delete orEd[key];render()}
+function orSave(sid,k){
+  const c=cls(),el=document.getElementById('oi_'+sid+'_'+k),col=ocs().find(x=>x.id===k);if(!c||!el||!col)return;
+  const n=orNum(el.value);if(el.value.trim()===''||isNaN(n)||n<0||n>col.m){el.style.borderColor='var(--a)';el.focus();return}
+  c.oral=c.oral||{};(c.oral[sid]=c.oral[sid]||{})[k]=n;delete orEd[sid+'|'+k];save();render()}
+function orDel(sid,k){const key='or|'+sid+'|'+k;if(armed!==key){armed=key;render();return}const c=cls();if(c.oral&&c.oral[sid]){delete c.oral[sid][k];if(!Object.keys(c.oral[sid]).length)delete c.oral[sid]}delete orEd[sid+'|'+k];armed=null;save();render()}
+function orCell(c,s,col){
+  const v=orVal(c,s.id,col.id),has=typeof v==='number',key=s.id+'|'+col.id,ak='or|'+s.id+'|'+col.id;
+  if(has&&!orEd[key])return `<b>${fmt(v)}</b><br><button onclick="orEdit('${key}')">تعديل</button> <button ${armed===ak?'style="background:#c0152f;color:#fff"':''} onclick="orDel('${s.id}','${col.id}')">${armed===ak?'تأكيد':'حذف'}</button>`;
+  return `<input id="oi_${s.id}_${col.id}" type="text" data-num="1" inputmode="decimal" data-qmax="${col.m}" data-save="orSave('${s.id}','${col.id}')" value="${has?fmt(v):''}" style="width:60px;border:1px solid var(--bd);border-radius:8px" onkeydown="if(event.key==='Enter')orSave('${s.id}','${col.id}')"><br><button class="p" onclick="orSave('${s.id}','${col.id}')">حفظ</button>${has?` <button onclick="orCancel('${key}')">إلغاء</button>`:''}`;
+}
+function orTot(c,sid){const cols=ocs();let t=0,any=false;cols.forEach(x=>{const v=orVal(c,sid,x.id);if(typeof v==='number'){t+=v;any=true}});return any?Math.round(t*100)/100:null}
+function orHead(){const cols=ocs(),mx=cols.reduce((a,x)=>a+(+x.m||0),0);return ['الطالب',...cols.map(x=>x.n+' (من '+fmt(x.m)+')'),'المجموع رقماً (من '+fmt(mx)+')','المجموع كتابةً']}
+function orRows(c){return c.students.filter(s=>!srchQ||s.name.includes(srchQ)).map(s=>{const t=orTot(c,s.id);return [s.name,...ocs().map(x=>{const v=orVal(c,s.id,x.id);return typeof v==='number'?fmt(v):''}),t===null?'':fmt(t),t===null?'':numW(t)]})}
+function exportOral(){const c=cls();csvOut('الشفوي-'+c.name+expNm(c),orHead(),orRows(c))}
+function pdfOral(){const c=cls();pdfOut('الشفوي - '+clsLabel(c)+expNm(c),orHead(),orRows(c))}
+/* أعمدة الشفوي */
+function ocEdit(id){ocEd[id]=1;render()}
+function ocCancel(id){delete ocEd[id];render()}
+function ocSave(id){
+  const n=document.getElementById('on_'+id),m=document.getElementById('om_'+id);if(!n||!m)return;
+  const nm=n.value.trim(),mx=orNum(m.value);if(!nm){n.style.borderColor='var(--a)';n.focus();return}if(isNaN(mx)||mx<=0){m.style.borderColor='var(--a)';m.focus();return}
+  if(!Array.isArray(db.oc))db.oc=OC0.map(x=>Object.assign({},x));
+  if(id==='new')db.oc.push({id:uid(),n:nm,m:mx});else{const x=db.oc.find(y=>y.id===id);if(x){x.n=nm;x.m=mx}}
+  delete ocEd[id];save();render()}
+function ocDel(id){const k='oc|'+id;if(armed!==k){armed=k;render();return}if(!Array.isArray(db.oc))db.oc=OC0.map(x=>Object.assign({},x));db.oc=db.oc.filter(x=>x.id!==id);delete ocEd[id];armed=null;save();render()}
+function ocCard(){
+  const f=(id,x)=>`<input id="on_${id}" placeholder="اسم العمود" value="${esc(x?x.n:'')}" style="flex:1;min-width:0"><input id="om_${id}" type="text" data-num="1" inputmode="decimal" placeholder="الدرجة" value="${x?fmt(x.m):''}" style="width:70px">`;
+  return `<details class="card"><summary><b>أعمدة الشفوي</b> <span class="mu">(${ocs().map(x=>esc(x.n)+' '+fmt(x.m)).join(' · ')})</span></summary><p class="mu" style="margin:6px 0">غيّر اسم العمود أو درجته، أو احذفه، أو أضف عموداً جديداً. المجموع يُحسب من الأعمدة كلها.</p>
+  ${ocs().map(x=>ocEd[x.id]?`<div style="padding:6px 0;border-top:1px solid var(--bd)"><div class="row">${f(x.id,x)}</div><div class="row" style="margin-top:6px"><button class="p" onclick="ocSave('${x.id}')">حفظ</button><button onclick="ocCancel('${x.id}')">إلغاء</button></div></div>`:`<div class="st" style="padding:6px 0;border-top:1px solid var(--bd)"><span>${esc(x.n)} <span class="mu">(من ${fmt(x.m)})</span></span><span class="row" style="gap:6px"><button onclick="ocEdit('${x.id}')">تعديل</button><button ${armed==='oc|'+x.id?'style="background:#c0152f;color:#fff"':''} onclick="ocDel('${x.id}')">${armed==='oc|'+x.id?'تأكيد الحذف':'حذف'}</button></span></div>`).join('')}
+  <div style="padding:8px 0 0;border-top:1px solid var(--bd);margin-top:6px"><b style="font-size:14px">+ عمود جديد</b><div class="row" style="margin-top:6px">${f('new',null)}</div><button class="p" style="margin-top:6px" onclick="ocSave('new')">إضافة العمود</button></div></details>`;
+}
+function viewOral(){
+  srchQ='';const c=cls();if(!c)return '<div class="empty">أضف صفاً أولاً من «المزيد ← الصفوف».</div>';
+  let h=classSel()+ocCard()+`<div class="row" style="margin-bottom:10px"><input type="search" placeholder="🔍 بحث عن طالب/ة" oninput="gfilter(this.value)"></div>`;
+  if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً من «المزيد ← الطلاب».</div>';
+  const H=orHead();
+  h+=`<div class="gwrap"><table class="gt" id="gtab"><tr>${H.map((x,i)=>`<th${i===0?' class="gsn"':''}>${esc(x)}</th>`).join('')}</tr>`;
+  h+=c.students.map((s,n)=>{const t=orTot(c,s.id);return `<tr data-n="${esc(s.name)}"><td class="gsn">${n+1}. ${esc(s.name)}</td>${ocs().map(x=>`<td>${orCell(c,s,x)}</td>`).join('')}<td><b>${t===null?'-':fmt(t)}</b></td><td style="white-space:normal;min-width:120px">${t===null?'-':esc(numW(t))}</td></tr>`}).join('');
+  h+=`</table></div><p class="mu" style="margin:8px 2px">اكتب درجة كل عمود واضغط حفظ (لا تتجاوز الدرجة العظمى للعمود). المجموع يظهر رقماً وكتابةً بعد الجمع تلقائياً. لكل خانة تعديل وحذف.</p>${expBox()}<div class="row"><button class="p" style="flex:1" onclick="exportOral()">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfOral()">مشاركة / طباعة PDF</button></div><div class="row" style="margin-top:8px"><button class="p" style="flex:1;background:#1f9d55;border-color:#1f9d55" onclick="printOral()">🖨 طباعة بشكل الكشف الرسمي</button></div>`;
+  return h;
+}
+/* ===== كشف الدرجات للطباعة ===== */
+const PS0={dir:'المديرية العامة للتربية في محافظة الأنبار',sch:'',teacher:'علي جبار حسين',principal:'محمد هلال',year:'2026 - 2027',logo:''};
+const ps=()=>Object.assign({},PS0,db.ps||{});
+const toAI=s=>String(s).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
+function sheetHtml(o){
+  const P=ps(),col=o.cols,nc=col.length;
+  const head=`<tr><th rowspan="2" style="width:9mm">ت</th><th rowspan="2" style="min-width:52mm">اسم التلميذ</th>${col.map(x=>`<th rowspan="2">${esc(x.n)}${x.m?`<br><small>${toAI(fmt(x.m))}</small>`:''}</th>`).join('')}<th colspan="2">الدرجة</th></tr><tr><th style="width:16mm">رقماً</th><th style="min-width:34mm">كتابةً</th></tr>`;
+  const rows=o.rows.map((r,i)=>`<tr><td>${toAI(i+1)}</td><td class="nm">${esc(r.n)}</td>${r.v.map(v=>`<td>${v===''||v==null?'':toAI(v)}</td>`).join('')}<td><b>${r.t==null?'':toAI(fmt(r.t))}</b></td><td class="wd">${r.t==null?'':esc(numW(r.t))}</td></tr>`).join('');
+  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>
+@page{size:A4;margin:8mm 10mm}
+*{box-sizing:border-box}body{margin:0;font-family:'Amiri','Traditional Arabic','Geeza Pro','Noto Naskh Arabic',serif;color:#000;background:#fff;font-size:13pt}
+table.wrap{width:100%;border-collapse:collapse}table.wrap>thead>tr>td,table.wrap>tbody>tr>td,table.wrap>tfoot>tr>td{padding:0;border:0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6mm}
+.box{flex:1;border:1.5px solid #6b8cae;border-radius:14px;padding:6px 10px;text-align:center;font-size:13pt;line-height:1.7}
+.logo{width:28mm;height:28mm;display:flex;align-items:center;justify-content:center}.logo img{max-width:100%;max-height:100%}
+table.meta{border-collapse:collapse;width:62mm;font-size:11pt}table.meta td{border:1.5px solid #000;padding:2px 6px;text-align:center;font-weight:700}table.meta td.k{width:20mm;background:#f2f2f2}
+h2{text-align:center;font-weight:400;font-size:15pt;margin:2mm 0 4mm}
+table.g{width:100%;border-collapse:collapse;font-size:12pt}table.g th,table.g td{border:1.5px solid #000;padding:3px 4px;text-align:center}table.g th{background:#eef1f7;font-weight:700}table.g thead{display:table-header-group}table.g tr{page-break-inside:avoid}
+td.nm{text-align:right;font-weight:700;white-space:nowrap}td.wd{font-size:11pt}small{font-weight:400}
+.foot{position:fixed;left:0;right:0;bottom:2mm;display:flex;justify-content:space-between;padding:0 6mm;font-size:13pt}
+.foot div{width:75mm;text-align:center;line-height:2}.foot .s{border-bottom:1px dotted #000;height:9mm;margin-top:2mm}
+.sp{height:36mm}
+</style></head><body>
+<table class="wrap"><thead><tr><td></td></tr></thead><tfoot><tr><td><div class="sp"></div></td></tr></tfoot><tbody><tr><td>
+<div class="top"><div class="box">${esc(P.dir)}<br>${esc(o.school||P.sch)}</div><div class="logo">${P.logo?`<img src="${P.logo}">`:''}</div>
+<table class="meta"><tr><td class="k">الصف :</td><td>${esc(o.cname)}</td></tr><tr><td class="k">المادة :</td><td>${esc(o.subject||'')}</td></tr><tr><td class="k">التاريخ :</td><td>${esc(toAI(o.date||''))}</td></tr></table></div>
+<h2>${esc(o.title)}${P.year?' للعام الدراسي / '+esc(toAI(P.year)):''}</h2>
+<table class="g"><thead>${head}</thead><tbody>${rows}</tbody></table>
+</td></tr></tbody></table>
+<div class="foot"><div>مدرس المادة<br><b>${esc(P.teacher)}</b><div class="s">التوقيع</div></div><div>المدير<br><b>${esc(P.principal)}</b><div class="s">التوقيع</div></div></div>
+</body></html>`;
+}
+let shO=null;
+function shRender(){const f=document.getElementById('shf');if(!f)return;f.onload=()=>{try{const d=f.contentDocument.documentElement,h=d.scrollHeight,w=document.getElementById('shw').clientWidth,k=Math.min(1,w/794);f.style.height=h+'px';f.style.transform='scale('+k+')';document.getElementById('shw').style.height=(h*k)+'px'}catch(e){}};f.srcdoc=sheetHtml(shO)}
+function shClose(){const e=document.getElementById('shov');if(e)e.remove()}
+function shSet(k,v){shO[k]=v;clearTimeout(shSet.t);shSet.t=setTimeout(shRender,250)}
+function shPrint(){const f=document.getElementById('shf');try{f.contentWindow.focus();f.contentWindow.print()}catch(e){alert('تعذّرت الطباعة من هذه الصفحة')}}
+function openSheet(o){
+  shO=o;shClose();
+  const d=document.createElement('div');d.id='shov';d.style.cssText='position:fixed;inset:0;z-index:90;background:var(--bg);overflow:auto;padding:10px';
+  d.innerHTML=`<div class="card" style="position:sticky;top:0;z-index:2"><div class="row" style="gap:6px;flex-wrap:wrap"><button class="p" onclick="shPrint()">🖨 طباعة / حفظ PDF</button><button onclick="shClose()">إغلاق</button><button onclick="shClose();setView('pset')">⚙ الترويسة والتواقيع</button></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px"><input value="${esc(o.title)}" placeholder="عنوان الكشف" oninput="shSet('title',this.value)"><input value="${esc(o.subject||'')}" placeholder="المادة" oninput="shSet('subject',this.value)"><input value="${esc(o.date||'')}" placeholder="التاريخ (مثل 2026/11/26)" oninput="shSet('date',this.value)"><input value="${esc(o.cname)}" placeholder="الصف" oninput="shSet('cname',this.value)"></div></div>
+  <div id="shw" style="width:100%;overflow:hidden;background:#fff;border:1px solid var(--bd);margin-top:8px"><iframe id="shf" style="width:794px;border:0;transform-origin:top right;background:#fff;display:block;margin-right:0"></iframe></div>`;
+  document.body.appendChild(d);shRender();
+}
+function sheetBase(c){const sc=(db.schools||[]).find(x=>x.id===c.schoolId);return {cname:c.name,school:sc?sc.name:'',date:'    /    / '+new Date().getFullYear()}}
+function sheetFrom(c,title,subject,cols,list){
+  return Object.assign(sheetBase(c),{title,subject,cols,rows:list.filter(r=>!srchQ||r.n.includes(srchQ))});
+}
+function printOral(){const c=cls(),cols=ocs();
+  openSheet(sheetFrom(c,'امتحان الشفوي','',cols,c.students.map(s=>({n:s.name,v:cols.map(x=>{const v=orVal(c,s.id,x.id);return typeof v==='number'?fmt(v):''}),t:orTot(c,s.id)}))))}
+function printExamSheet(){const c=cls(),E=examCols(c),subs=[...new Set(E.map(e=>e.subject).filter(Boolean))];
+  openSheet(sheetFrom(c,'امتحان '+(db.rt&&db.rt!=='all'?db.rt:''),subs.join(' - '),E.map(e=>({n:e.name,m:e.max})),c.students.map(s=>{const v=E.map(e=>typeof e.scores[s.id]==='number'?fmt(e.scores[s.id]):'');const nums=E.filter(e=>typeof e.scores[s.id]==='number');return {n:s.name,v,t:nums.length?Math.round(nums.reduce((a,e)=>a+e.scores[s.id],0)*100)/100:null}})))}
+function printTermSheet(t){const c=cls(),T=tCalc(c,t),subs=[...new Set(T.ex.map(e=>e.subject).filter(Boolean))];
+  openSheet(sheetFrom(c,TT[t][1],subs.join(' - '),[...T.ex.map(e=>({n:e.name,m:e.max})),{n:'اليومي',m:sumW()+dsc().att}],T.rows.map(r=>({n:r.s.name,v:[...T.ex.map(e=>typeof e.scores[r.s.id]==='number'?fmt(e.scores[r.s.id]):''),fmt(r.d)],t:r.tot}))))}
+/* إعدادات الطباعة */
+function psSave(){
+  const g=id=>document.getElementById(id).value.trim();
+  db.ps=Object.assign({},db.ps||{},{dir:g('ps_dir'),sch:g('ps_sch'),teacher:g('ps_t'),principal:g('ps_p'),year:g('ps_y')});save();msg='تم الحفظ';render();setTimeout(()=>{msg='';render()},1500)}
+function psLogo(){const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{const f=i.files[0];if(!f)return;const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{const k=Math.min(1,260/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k),cv=document.createElement('canvas');cv.width=w;cv.height=h;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);URL.revokeObjectURL(u);db.ps=Object.assign({},db.ps||{},{logo:cv.toDataURL('image/jpeg',0.85)});save();render()};im.src=u};i.click()}
+function psLogoDel(){if(armed!=='pslogo'){armed='pslogo';render();return}if(db.ps)db.ps.logo='';armed=null;save();render()}
+function viewPSet(){
+  const P=ps(),f=(id,l,v)=>`<label class="mu" style="font-size:12px">${l}</label><input id="${id}" value="${esc(v)}" style="width:100%;margin-bottom:8px">`;
+  return `<div class="card"><b>بيانات الطباعة</b>${msg?` <span class="ok">${msg}</span>`:''}<p class="mu" style="margin:4px 0 10px">تظهر في ترويسة كشف الدرجات وفي أسفل كل صفحة مطبوعة.</p>
+  ${f('ps_dir','الجهة (أعلى الكشف)',P.dir)}${f('ps_sch','اسم المدرسة (اتركه فارغاً لاستخدام اسم مدرسة الصف)',P.sch)}${f('ps_y','العام الدراسي',P.year)}${f('ps_t','اسم مدرس المادة',P.teacher)}${f('ps_p','اسم المدير',P.principal)}
+  <div class="row"><button class="p" onclick="psSave()">حفظ</button></div></div>
+  <div class="card"><b>الشعار</b><div style="margin:8px 0">${P.logo?`<img src="${P.logo}" style="max-height:90px">`:'<span class="mu">لا يوجد شعار</span>'}</div><div class="row"><button class="p" onclick="psLogo()">${P.logo?'تغيير الشعار':'اختيار صورة الشعار'}</button>${P.logo?`<button ${armed==='pslogo'?'style="background:#c0152f;color:#fff"':''} onclick="psLogoDel()">${armed==='pslogo'?'تأكيد الحذف':'حذف'}</button>`:''}</div><p class="mu" style="margin:8px 0 0">اختر صورة شعار المدرسة أو الوزارة من الصور (تُحفظ على جهازك).</p></div>`;
 }
 const TT={d1:['الفصل الأول','مجموع الفصل الأول'],d2:['الفصل الثاني','مجموع الفصل الثاني']};
 const exTgt=tn=>+((db.exmx||{})[tn])||0;
@@ -820,14 +946,14 @@ function pdfT(t){const c=cls();pdfOut(TT[t][1]+trTxt(t)+' - '+clsLabel(c)+expNm(
 function viewGT(t){
   srchQ='';const c=cls();if(!c)return '<div class="empty">أضف صفاً أولاً من «المزيد ← الصفوف».</div>';
   const r=trg(t),T=tCalc(c,t);
-  let h=classSel()+perCard(t)+exCard('txo'+t,c.exams.filter(e=>e.term===TT[t][0]),'امتحانات '+TT[t][0])+`<div class="card"><b>فترة ${TT[t][1]}</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="min-width:0"><label class="mu" style="font-size:12px">من تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.f||''}" onchange="setTr('${t}','f',this.value)"></div><div style="min-width:0"><label class="mu" style="font-size:12px">إلى تاريخ</label><input type="date" style="width:100%;min-width:0" value="${r.t||''}" onchange="setTr('${t}','t',this.value)"></div></div><div class="row" style="margin-top:8px"><button onclick="clrTr('${t}')">كل الفترة</button></div><p class="mu" style="margin:8px 0 0">الفترة تخص اليومي والغياب. الامتحانات تؤخذ كلها من امتحانات «${TT[t][0]}».</p></div>`;
+  let h=classSel()+perCard(t)+exCard('txo'+t,c.exams.filter(e=>e.term===TT[t][0]),'امتحانات '+TT[t][0]);
   h+=`<div class="row" style="margin-bottom:10px"><input type="search" placeholder="🔍 بحث عن طالب/ة" oninput="gfilter(this.value)"></div>`;
   if(!c.students.length)return h+'<div class="empty">أضف الطلاب أولاً من «المزيد ← الطلاب».</div>';
   if(!T.ex.length)h+=`<div class="empty" style="margin-bottom:10px">لا توجد امتحانات مسجّلة للـ${TT[t][0]}، والمجموع هنا هو اليومي فقط. أضف امتحاناً واختر الفصل.</div>`;
   const H=tHead(c,t);
   h+=`<div class="gwrap"><table class="gt" id="gtab"><tr>${H.map((x,i)=>`<th${i===0?' class="gsn"':''}>${esc(x)}</th>`).join('')}</tr>`;
   h+=T.rows.map((q,n)=>`<tr data-n="${esc(q.s.name)}"><td class="gsn">${n+1}. ${esc(q.s.name)}</td>${T.ex.map(e=>`<td>${typeof e.scores[q.s.id]==='number'?fmt(e.scores[q.s.id]):'-'}</td>`).join('')}<td><b>${fmt(q.es)}</b></td>${q.pd.map(x=>`<td>${fmt(x)}</td>`).join('')}<td><b>${fmt(q.d)}</b></td><td class="gtot">${fmt(q.tot)}</td></tr>`).join('');
-  h+=`</table></div><p class="mu" style="margin:8px 2px">المجموع = درجات امتحانات ${TT[t][0]} + الدرجة اليومية. الامتحان الذي لم تُسجَّل له درجة يُحسب صفراً.</p>${expBox()}<div class="row"><button class="p" style="flex:1" onclick="exportT('${t}')">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfT('${t}')">مشاركة / طباعة PDF</button></div>`;
+  h+=`</table></div><p class="mu" style="margin:8px 2px">المجموع = درجات امتحانات ${TT[t][0]} + الدرجة اليومية. الامتحان الذي لم تُسجَّل له درجة يُحسب صفراً.</p>${expBox()}<div class="row"><button class="p" style="flex:1" onclick="exportT('${t}')">تصدير إلى Excel</button><button class="p" style="flex:1" onclick="pdfT('${t}')">مشاركة / طباعة PDF</button></div><div class="row" style="margin-top:8px"><button class="p" style="flex:1;background:#1f9d55;border-color:#1f9d55" onclick="printTermSheet('${t}')">🖨 طباعة بشكل الكشف الرسمي</button></div>`;
   return h;
 }
 function mget(c,sid,k){const v=((gr(c).m||{})[sid]||{})[k];return v===undefined?'':v}
@@ -872,7 +998,7 @@ function render(){
   const VV={home:viewHome,exams:viewExams,more:viewMore,att:viewAttPage,exterm:()=>backBtn()+classPage('grd',true),
     schools:()=>backBtn()+listCard('schools','المدارس','اسم المدرسة'),subjects:()=>backBtn()+listCard('subjects','المواد','اسم المادة'),
     classes:()=>backBtn()+viewClasses(),students:()=>backBtn()+classPage('stu',true),sched:()=>backBtn()+viewSched(),eval:()=>backBtn()+classPage('evl',true),
-    settings:()=>backBtn()+viewSettings(),gd1:()=>backBtn()+viewGD('d1'),gd2:()=>backBtn()+viewGD('d2'),gt1:()=>backBtn()+viewGT('d1'),gt2:()=>backBtn()+viewGT('d2'),gset:()=>backBtn()+viewGSet(),rexam:viewRExam,ratt:viewRAtt,reval:viewREval,rfin:viewRFin,rreg:viewRReg};
+    settings:()=>backBtn()+viewSettings(),gd1:()=>backBtn()+viewGD('d1'),gd2:()=>backBtn()+viewGD('d2'),gt1:()=>backBtn()+viewGT('d1'),gt2:()=>backBtn()+viewGT('d2'),gset:()=>backBtn()+viewGSet(),oral:()=>backBtn()+viewOral(),pset:()=>backBtn()+viewPSet(),rexam:viewRExam,ratt:viewRAtt,reval:viewREval,rfin:viewRFin,rreg:viewRReg};
   const nav=[['home','الرئيسية','🏠'],['exams','الامتحانات','📝'],['more','المزيد','☰']];
   const body=(VV[v]||viewHome)();
   $('#app').innerHTML=`<div class="top"><b>${TITLES[v]||''}</b><span class="lg"><img src="icon-192.png" alt="" width="26" height="26">دفتر المعلم</span></div>`+((v==='home'||v==='more')?accBanner()+bkBanner():'')+body
