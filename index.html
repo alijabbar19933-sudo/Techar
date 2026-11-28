@@ -194,7 +194,7 @@ function viewStudents(c){
   const abs=id=>Object.values(c.att).filter(d=>d[id]==='a').length;
   const row=(s,i)=>edit===s.id
     ?`<div style="padding:8px 0;border-top:1px solid var(--bd)"><input id="en2" value="${esc(s.name)}"><input id="ph" type="tel" inputmode="tel" placeholder="رقم ولي الأمر" value="${esc(s.phone||'')}" style="margin-top:6px"><div class="row" style="margin-top:6px"><button class="p" onclick="saveSt('${s.id}')">حفظ</button><button onclick="edit=null;render()">إلغاء</button></div></div>`
-    :`<div class="st" style="padding:7px 0;border-top:1px solid var(--bd)"><span><b>${(c.all||c.students).indexOf(s)+1}. ${esc(s.name)}</b>${abs(s.id)?`<span class="mu"> — غياب ${abs(s.id)}</span>`:''}${s.phone?`<br><a class="tel" href="tel:${esc(s.phone)}">📞 ${esc(s.phone)}</a>`:''}</span><span><button class="x" onclick="edit='${s.id}';armed=null;render()">تعديل</button><button class="x ${armed===s.id?'arm':''}" onclick="delSt('${s.id}')">${armed===s.id?'تأكيد الحذف':'✕'}</button></span></div>`;
+    :`<div class="st" style="padding:7px 0;border-top:1px solid var(--bd)"><span><b>${(c.all||c.students).indexOf(s)+1}. ${esc(s.name)}</b>${abs(s.id)?`<span class="mu"> — غياب ${abs(s.id)}</span>`:''}${s.phone?`<br><a class="tel" href="tel:${esc(s.phone)}">📞 ${esc(s.phone)}</a>`:''}</span><span><button class="x" onclick="scId='${s.id}';setView('scard')">بطاقة</button><button class="x" onclick="edit='${s.id}';armed=null;render()">تعديل</button><button class="x ${armed===s.id?'arm':''}" onclick="delSt('${s.id}')">${armed===s.id?'تأكيد الحذف':'✕'}</button></span></div>`;
   return `<div class="card"><b>إضافة طلاب دفعة واحدة</b>
   <p class="mu">الصق الأسماء، اسم واحد في كل سطر (من Excel أو واتساب أو Word). إذا كان بجانب الاسم رقم هاتف في عمود ثانٍ يُحفظ كرقم ولي الأمر.</p>
   <textarea id="bulk" rows="6" placeholder="أحمد علي&#10;زينب حسن&#10;محمد كريم"></textarea>
@@ -658,7 +658,7 @@ function accBanner(){
   return `<div class="card" style="border-color:var(--pr)"><b>☁️ احفظ بياناتك في حساب</b><p class="mu">سجّل بالبريد حتى لا تضيع بياناتك وتفتحها من أي جهاز.</p><button class="p" onclick="setView('settings')">تسجيل الدخول</button></div>`;
 }
 
-const TITLES={home:'الرئيسية',exams:'الامتحانات',more:'المزيد',att:'تسجيل الحضور',exterm:'الامتحانات',schools:'المدارس',classes:'الصفوف',subjects:'المواد',students:'الطلاب',sched:'جدول الحصص',eval:'التقييم والملاحظات',settings:'الاعدادات',rexam:'تقرير الامتحانات',gd1:'يومي الفصل الأول',gd2:'يومي الفصل الثاني',gt1:'مجموع الفصل الأول',gt2:'مجموع الفصل الثاني',oral:'الشفوي',pset:'بيانات الطباعة',gset:'توزيع درجات اليومي',ratt:'تقرير الحضور والغياب',reval:'تقرير التقييم',rfin:'المجموع النهائي',rreg:'سجل الحضور الشهري'};
+const TITLES={home:'الرئيسية',exams:'الامتحانات',more:'المزيد',att:'تسجيل الحضور',exterm:'الامتحانات',schools:'المدارس',classes:'الصفوف',subjects:'المواد',students:'الطلاب',sched:'جدول الحصص',eval:'التقييم والملاحظات',settings:'الاعدادات',rexam:'تقرير الامتحانات',gd1:'يومي الفصل الأول',gd2:'يومي الفصل الثاني',gt1:'مجموع الفصل الأول',gt2:'مجموع الفصل الثاني',oral:'الشفوي',pset:'بيانات الطباعة',scard:'بطاقة الطالب',gset:'توزيع درجات اليومي',ratt:'تقرير الحضور والغياب',reval:'تقرير التقييم',rfin:'المجموع النهائي',rreg:'سجل الحضور الشهري'};
 const PARENT={home:'home',att:'home',exams:'exams',exterm:'exams'};
 const DCOL=['#c2410c','#0f766e','#7c3aed','#be123c','#4d7c0f','#a21caf','#334e9c'],TCOL=['#0e7490','#be185d','#b45309','#4d7c0f','#6d28d9'];
 function curView(){const v=db.view;return (!v||v==='main')?'home':v}
@@ -713,7 +713,7 @@ function viewMore(){
     :`<div class="prof"><div class="av">👤</div><div><b>${esc(p.name||'المعلم')}</b>${p.phone?`<span>${esc(p.phone)}</span>`:''}</div><button onclick="edit='PROF';render()">تعديل</button></div>`;
   return head+L([['schools','المدارس'],['classes','الصفوف'],['subjects','المواد'],['students','الطلاب'],['sched','جدول الحصص'],['eval','التقييم والملاحظات']])
    +'<div class="sec">سجل الدرجات</div>'+L([['gd1','يومي الفصل الأول'],['gd2','يومي الفصل الثاني'],['gt1','مجموع الفصل الأول'],['gt2','مجموع الفصل الثاني'],['oral','الشفوي']])+'<div class="sec">الطباعة</div>'+L([['pset','بيانات الطباعة (الترويسة والتواقيع)']])
-   +'<div class="sec">التقارير</div>'+L([['rexam','تقرير الامتحانات'],['ratt','تقرير الحضور والغياب'],['reval','تقرير التقييم'],['rfin','المجموع النهائي'],['rreg','سجل الحضور الشهري']])
+   +'<div class="sec">التقارير</div>'+L([['rexam','تقرير الامتحانات'],['ratt','تقرير الحضور والغياب'],['reval','تقرير التقييم'],['rfin','المجموع النهائي'],['scard','بطاقة الطالب'],['rreg','سجل الحضور الشهري']])
    +L([['settings','الاعدادات']]);
 }
 /* ===== سجل الدرجات (يومي + شهري) ===== */
@@ -975,6 +975,42 @@ function viewPSet(){
   <div class="row"><button class="p" onclick="psSave()">حفظ</button></div></div>
   <div class="card"><b>الشعار</b><div style="margin:8px 0">${P.logo?`<img src="${P.logo}" style="max-height:90px">`:'<span class="mu">لا يوجد شعار</span>'}</div><div class="row"><button class="p" onclick="psLogo()">${P.logo?'تغيير الشعار':'اختيار صورة الشعار'}</button>${P.logo?`<button ${armed==='pslogo'?'style="background:#c0152f;color:#fff"':''} onclick="psLogoDel()">${armed==='pslogo'?'تأكيد الحذف':'حذف'}</button>`:''}</div><p class="mu" style="margin:8px 0 0">اختر صورة شعار المدرسة أو الوزارة من الصور (تُحفظ على جهازك).</p></div>`;
 }
+/* ===== بطاقة الطالب + إرسال النتيجة لولي الأمر ===== */
+let scId=null;
+function scData(c,sid){
+  const s=c.students.find(x=>x.id===sid),R=finRows(c),f=R.find(r=>r.s.id===sid),ranked=R.filter(r=>r.f!==null).length,rows=[];
+  const act=['d1','d2'].filter(t=>pact(t).length),dts=act.length?act:['d1'];
+  dts.forEach(t=>{const r=dCalc(c,t).find(q=>q.s.id===sid);if(r&&(r.e.days||r.tot))rows.push([act.length?TN[t]+trTxt(t):'اليومي',fmt(r.tot)+' من '+fmt(sumW()+dsc().att)])});
+  c.exams.forEach(e=>{if(typeof e.scores[sid]==='number')rows.push([(e.subject?e.subject+' - ':'')+e.name,fmt(e.scores[sid])+' من '+fmt(e.max)])});
+  const n={p:0,a:0,l:0,e:0};Object.keys(c.att).forEach(k=>{const v=(c.att[k]||{})[sid];if(v)n[v]++});const tot=n.p+n.a+n.l+n.e;
+  return {s,rank:f&&f.rank!=='-'?f.rank:null,ranked,fin:f&&f.f!==null?f.f:null,rows,n,tot,pct:tot?Math.round((n.p+n.l)/tot*100):null};
+}
+function scText(c,sid){
+  const D=scData(c,sid),P=prof();
+  let t='السلام عليكم ورحمة الله، ولي أمر الطالب '+D.s.name+' ('+c.name+').\nنود إعلامكم بمستواه الدراسي:\n';
+  if(D.rank)t+='• الترتيب: '+D.rank+' من '+D.ranked+'\n';
+  if(D.fin!==null)t+='• المعدل: '+Math.round(D.fin)+'%\n';
+  D.rows.forEach(r=>{t+='• '+r[0]+': '+r[1]+'\n'});
+  if(D.tot)t+='• الحضور: حاضر '+D.n.p+'، غائب '+D.n.a+'، متأخر '+D.n.l+(D.n.e?'، مجاز '+D.n.e:'')+(D.pct!==null?' (نسبة الحضور '+D.pct+'%)':'')+'\n';
+  t+='مع التقدير'+(P.name?'\n'+P.name:'');
+  return t;
+}
+function scWa(){const c=cls(),s=c.students.find(x=>x.id===scId);if(!s)return;let ph=(s.phone||prompt('رقم ولي الأمر (مثال 07701234567):')||'').replace(/\D/g,'');if(!ph)return;if(ph[0]==='0')ph='964'+ph.slice(1);s.phone=ph;save();window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(scText(c,s.id)),'_blank')}
+async function scCopy(){const c=cls();try{await navigator.clipboard.writeText(scText(c,scId));msg='تم النسخ';}catch(e){msg='تعذّر النسخ'}render();setTimeout(()=>{msg='';render()},1500)}
+function scPdf(){const c=cls(),D=scData(c,scId),rows=[...(D.rank?[['الترتيب',D.rank+' من '+D.ranked]]:[]),...(D.fin!==null?[['المعدل',Math.round(D.fin)+'%']]:[]),...D.rows,...(D.tot?[['الحضور','حاضر '+D.n.p+' / غائب '+D.n.a+' / متأخر '+D.n.l+' / مجاز '+D.n.e+(D.pct!==null?' ('+D.pct+'%)':'')]]:[])];pdfOut('بطاقة الطالب - '+D.s.name,['البند','النتيجة'],rows,{wts:[2,3]})}
+function viewSCard(){
+  const c=cls();if(!c)return '<div class="empty">أضف صفاً أولاً.</div>';if(!c.students.length)return classSel()+'<div class="empty">أضف الطلاب أولاً.</div>';
+  if(!c.students.some(s=>s.id===scId))scId=c.students[0].id;
+  const D=scData(c,scId),box=(l,v)=>`<div style="flex:1;text-align:center;background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:8px 4px"><div class="mu" style="font-size:12px">${l}</div><b style="font-size:20px">${v}</b></div>`;
+  return classSel()+`<div class="card"><select style="width:100%" onchange="scId=this.value;render()">${c.students.map((s,i)=>`<option value="${s.id}" ${s.id===scId?'selected':''}>${i+1}. ${esc(s.name)}</option>`).join('')}</select>
+  <div class="row" style="gap:8px;margin-top:10px">${box('الترتيب',D.rank?D.rank+' من '+D.ranked:'-')}${box('المعدل',D.fin!==null?Math.round(D.fin)+'%':'-')}${box('الحضور',D.pct!==null?D.pct+'%':'-')}</div>
+  ${D.rows.length?tbl(['البند','الدرجة'],D.rows):'<p class="mu">لا توجد درجات بعد.</p>'}
+  ${D.tot?`<p class="mu" style="margin:8px 0 0">الحضور: حاضر ${D.n.p} · غائب ${D.n.a} · متأخر ${D.n.l} · مجاز ${D.n.e}</p>`:''}
+  ${msg?`<p class="ok">${msg}</p>`:''}
+  <div class="row" style="margin-top:10px;gap:6px;flex-wrap:wrap"><button class="p" style="flex:1;background:#1f9d55;border-color:#1f9d55" onclick="scWa()">إرسال النتيجة لولي الأمر (واتساب)</button></div>
+  <div class="row" style="margin-top:6px;gap:6px"><button style="flex:1" onclick="scCopy()">نسخ الرسالة</button><button style="flex:1" onclick="scPdf()">PDF</button></div>
+  <details style="margin-top:8px"><summary class="mu">معاينة الرسالة</summary><pre style="white-space:pre-wrap;font-family:inherit;margin:6px 0 0">${esc(scText(c,scId))}</pre></details></div>`;
+}
 const TT={d1:['الفصل الأول','مجموع الفصل الأول'],d2:['الفصل الثاني','مجموع الفصل الثاني']};
 const exTgt=tn=>+((db.exmx||{})[tn])||0;
 let tgEd={};
@@ -1041,7 +1077,7 @@ function render(){
   const VV={home:viewHome,exams:viewExams,more:viewMore,att:viewAttPage,exterm:()=>backBtn()+classPage('grd',true),
     schools:()=>backBtn()+listCard('schools','المدارس','اسم المدرسة'),subjects:()=>backBtn()+listCard('subjects','المواد','اسم المادة'),
     classes:()=>backBtn()+viewClasses(),students:()=>backBtn()+classPage('stu',true),sched:()=>backBtn()+viewSched(),eval:()=>backBtn()+classPage('evl',true),
-    settings:()=>backBtn()+viewSettings(),gd1:()=>backBtn()+viewGD('d1'),gd2:()=>backBtn()+viewGD('d2'),gt1:()=>backBtn()+viewGT('d1'),gt2:()=>backBtn()+viewGT('d2'),gset:()=>backBtn()+viewGSet(),oral:()=>backBtn()+viewOral(),pset:()=>backBtn()+viewPSet(),rexam:viewRExam,ratt:viewRAtt,reval:viewREval,rfin:viewRFin,rreg:viewRReg};
+    settings:()=>backBtn()+viewSettings(),gd1:()=>backBtn()+viewGD('d1'),gd2:()=>backBtn()+viewGD('d2'),gt1:()=>backBtn()+viewGT('d1'),gt2:()=>backBtn()+viewGT('d2'),gset:()=>backBtn()+viewGSet(),oral:()=>backBtn()+viewOral(),pset:()=>backBtn()+viewPSet(),scard:()=>backBtn()+viewSCard(),rexam:viewRExam,ratt:viewRAtt,reval:viewREval,rfin:viewRFin,rreg:viewRReg};
   const nav=[['home','الرئيسية','🏠'],['exams','الامتحانات','📝'],['more','المزيد','☰']];
   const body=(VV[v]||viewHome)();
   $('#app').innerHTML=`<div class="top"><b>${TITLES[v]||''}</b><span class="lg"><img src="icon-192.png" alt="" width="26" height="26">دفتر المعلم</span></div>`+((v==='home'||v==='more')?accBanner()+bkBanner():'')+body
